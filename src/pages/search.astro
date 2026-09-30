@@ -1,0 +1,33 @@
+---
+import Layout from "@layouts/Layout.astro";
+---
+
+<Layout title="Search" description="Full-text search across every published note." noindex={true}>
+  <section class="max-w-ledger mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
+    <p class="section-marker">// Search</p>
+    <h1 class="font-display text-4xl sm:text-5xl font-bold mb-4">Search</h1>
+    <p class="text-on-surface-variant max-w-reading leading-relaxed mb-10">
+      Full-text search across every published field note - titles, prose, and headings. Matches are highlighted.
+    </p>
+    <input
+      type="search"
+      id="search-input-page"
+      placeholder="Search notes..."
+      aria-label="Search notes"
+      autocomplete="off"
+      class="w-full bg-surface-container border border-outline rounded-md px-4 py-3 font-heading text-sm text-on-surface placeholder:text-on-surface-variant hover:border-outline focus:outline-none focus:border-tertiary transition-colors duration-200"
+    />
+    <div id="search-results-page" class="search-result mt-8"></div>
+    <p class="note-meta mt-6">Search runs entirely in your browser - the index ships with the static build.</p>
+  </section>
+</Layout>
+
+<script>
+  import { createSearchUI } from "@lib/search";
+
+  const input = document.getElementById("search-input-page") as HTMLInputElement | null;
+  const output = document.getElementById("search-results-page") as HTMLElement | null;
+  if (input && output) {
+    createSearchUI(input, output, { syncUrl: true });
+  }
+</script>

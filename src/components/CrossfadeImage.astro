@@ -1,0 +1,75 @@
+---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+interface CrossfadeImage {
+  src: ImageMetadata;
+  alt: string;
+  subject: string;
+  width?: number;
+  height?: number;
+}
+
+interface Props {
+  images: CrossfadeImage[];
+  class?: string;
+  loading?: 'eager' | 'lazy';
+  interval?: number;
+}
+
+const { images, class: className, loading = 'lazy', interval = 4 } = Astro.props;
+
+const count = images.length;
+const total = interval * count;
+const slot = 100 / count;
+const fade = slot * 0.25;
+
+const css = `
+.crossfade-layer {
+  opacity: 0;
+  animation: crossfade ${total}s ease-in-out infinite;
+}
+
+.crossfade-layer:first-child {
+  opacity: 1;
+}
+
+@keyframes crossfade {
+  0% { opacity: 1; }
+  ${slot - fade}% { opacity: 1; }
+  ${slot}% { opacity: 0; }
+  ${100 - fade}% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crossfade-layer {
+    animation: none;
+    opacity: 0;
+  }
+  .crossfade-layer:first-child {
+    opacity: 1;
+  }
+}
+`;
+---
+
+<div class:list={['absolute inset-0', className]}>
+  {images.map((img, i) => (
+    <div
+      class:list={['absolute inset-0 crossfade-layer']}
+      style={`animation-delay: -${i * interval}s`}
+    >
+      <Image
+        src={img.src}
+        alt={img.alt}
+        width={img.width}
+        height={img.height}
+        class="absolute inset-0 w-full h-full object-cover"
+        loading={i === 0 ? loading : 'lazy'}
+      />
+    </div>
+  ))}
+</div>
+
+<style set:html={css} />

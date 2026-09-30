@@ -1,0 +1,416 @@
+---
+import "../styles/global.css";
+import Logo from "@components/Logo.astro";
+import Footer from "@components/Footer.astro";
+import ConsentBanner from "@components/ConsentBanner.astro";
+import SubscribeModal from "@components/SubscribeModal.astro";
+import SearchModal from "@components/SearchModal.astro";
+import ScrollToTop from "@components/ScrollToTop.astro";
+import Toast from "@components/Toast.astro";
+import MetaStrip from "@components/MetaStrip.astro";
+import Seo from "@components/Seo.astro";
+import { CONSENT_STORAGE_KEY } from "@lib/consent";
+import { SITE } from "@data/site";
+import { canonicalUrl } from "@lib/seo";
+
+const SITE_NAME = SITE.name;
+const WEBSITE_URL = SITE.websiteUrl;
+const gaId = import.meta.env.PUBLIC_GA_MEASUREMENT_ID;
+
+// Non-production builds (preview, staging) must never be indexed.
+const IS_PRODUCTION = SITE.url === "https://read.jampuk.com";
+
+interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+  ogImageAlt?: string;
+  bareTitle?: boolean;
+  parentTitle?: string;
+  noindex?: boolean;
+  ogType?: string;
+  publishedTime?: string;
+  modifiedTime?: string;
+  tags?: string[];
+  section?: string;
+  wordCount?: number;
+  readingMinutes?: number;
+  imageWidth?: number;
+  imageHeight?: number;
+}
+
+const {
+  title,
+  description = SITE.description,
+  ogImage = SITE.ogImage,
+  ogImageAlt,
+  bareTitle = false,
+  parentTitle,
+  noindex = false,
+  ogType = "website",
+  publishedTime,
+  modifiedTime,
+  tags,
+  section,
+  wordCount,
+  readingMinutes,
+  imageWidth,
+  imageHeight,
+} = Astro.props;
+
+// Never repeat the site name: some callers pass a fully-branded title.
+const titleHasBrand =
+  title === SITE_NAME || title.endsWith(`| ${SITE_NAME}`);
+const seoTitle =
+  bareTitle || titleHasBrand
+    ? title
+    : parentTitle && parentTitle.toLowerCase() !== SITE_NAME.toLowerCase()
+      ? `${title}, ${parentTitle} | ${SITE_NAME}`
+      : `${title} | ${SITE_NAME}`;
+
+// Noindex documents (404, search) get no canonical: they are served from a
+// special path and must not compete with a real page.
+const canonicalURL =
+  noindex || !IS_PRODUCTION ? "" : canonicalUrl(Astro.url.pathname);
+---
+
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicons/favicon-48x48.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png" />
+    <link rel="manifest" href="/favicons/site.webmanifest" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="generator" content={Astro.generator} />
+    <Seo
+      title={seoTitle}
+      pageTitle={title}
+      description={description}
+      canonicalURL={canonicalURL}
+      ogImage={ogImage}
+      ogImageAlt={ogImageAlt}
+      pathname={Astro.url.pathname}
+      siteName={SITE_NAME}
+      noindex={noindex || !IS_PRODUCTION}
+      ogType={ogType}
+      publishedTime={publishedTime}
+      modifiedTime={modifiedTime}
+      tags={tags}
+      section={section}
+      wordCount={wordCount}
+      readingMinutes={readingMinutes}
+      imageWidth={imageWidth}
+      imageHeight={imageHeight}
+    />
+    <link rel="alternate" type="application/rss+xml" title={SITE_NAME} href={`${SITE.url}/rss.xml`} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    {gaId && (
+      <Fragment>
+        {/* Main-thread gtag shim. `window.dataLayer.push` is patched by
+            Partytown to forward every command into the worker, so the
+            consent banner can update consent without touching gtag.js
+            directly. */}
+        <script is:inline>
+          window.dataLayer = window.dataLayer || [];
+          window.gtag =
+            window.gtag ||
+            function () {
+              window.dataLayer.push(arguments);
+            };
+        </script>
+
+        {/* gtag.js is fetched and executed inside the Partytown web worker */}
+        <script
+          type="text/partytown"
+          is:inline
+          src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+        ></script>
+
+        {/* The bootstrap MUST also run inside the worker (official Partytown
+            recipe) so consent defaults precede config against the worker's
+            own dataLayer. A previously stored decision is read from
+            localStorage (proxied back to the main thread) and applied before
+            the config call, so the very first hit carries the right state. */}
+        <script
+          type="text/partytown"
+          is:inline
+          define:vars={{ gaId, CONSENT_STORAGE_KEY }}
+          id="ga-consent-defaults"
+        >
+          window.dataLayer = window.dataLayer || [];
+          function gtag() {
+            window.dataLayer.push(arguments);
+          }
+          // Global default: granted
+          gtag("consent", "default", {
+            ad_storage: "granted",
+            ad_user_data: "granted",
+            ad_personalization: "granted",
+            analytics_storage: "granted",
+            functionality_storage: "granted",
+            security_storage: "granted",
+            wait_for_update: 500,
+          });
+          // Restricted default for EEA / UK until explicit consent
+          gtag("consent", "default", {
+            ad_storage: "denied",
+            ad_user_data: "denied",
+            ad_personalization: "denied",
+            analytics_storage: "denied",
+            wait_for_update: 500,
+            region: ["EEA", "UK"],
+          });
+          // Apply a stored decision (if any) before config
+          var stored = null;
+          try {
+            stored = window.localStorage.getItem(CONSENT_STORAGE_KEY);
+          } catch (e) {
+            /* storage unavailable */
+          }
+          if (stored === "granted" || stored === "denied") {
+            gtag("consent", "update", {
+              ad_storage: stored,
+              ad_user_data: stored,
+              ad_personalization: stored,
+              analytics_storage: stored,
+            });
+          }
+          gtag("js", new Date());
+          gtag("config", gaId);
+        </script>
+      </Fragment>
+    )}
+  </head>
+  <body class="bg-surface text-on-surface flex flex-col min-h-screen font-body">
+    <MetaStrip />
+
+    <header id="site-header" class="sticky top-0 z-50 w-full site-header is-top">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <div class="flex-shrink-0">
+            <a href="/" class="flex items-center" id="header-logo-link" aria-label="Jampuk Read home">
+              <Logo size="sm" showText={true} variant="light" />
+            </a>
+          </div>
+          <nav class="hidden menu:flex items-center space-x-8" aria-label="Primary">
+            <a href="/notes/" class="nav-link font-medium hover:text-accent-amber transition-colors duration-200 py-2 relative group" id="nav-posts">
+              Notes
+              <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-accent-amber transition-all duration-300 group-hover:w-full"></span>
+            </a>
+            <a href="/tags/" class="nav-link font-medium hover:text-accent-amber transition-colors duration-200 py-2 relative group" id="nav-tags">
+              Tags
+              <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-accent-amber transition-all duration-300 group-hover:w-full"></span>
+            </a>
+            <a href={WEBSITE_URL} class="nav-link font-medium hover:text-accent-amber transition-colors duration-200 py-2 relative group" id="nav-website">
+              Jampuk.com
+              <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-accent-amber transition-all duration-300 group-hover:w-full"></span>
+            </a>
+          </nav>
+          <div class="hidden menu:flex items-center gap-4">
+            <button
+              type="button"
+              data-search-trigger="true"
+              aria-label="Search notes"
+              id="search-header-button"
+              class="nav-link inline-flex items-center justify-center p-2 rounded-md text-on-surface-variant hover:text-accent-amber hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent-amber transition-colors duration-200"
+            >
+              <span class="sr-only">Search notes</span>
+              <svg class="block h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"></path>
+              </svg>
+            </button>
+            <a
+              href="#"
+              data-subscribe-trigger="true"
+              class="inline-flex items-center justify-center px-5 py-2.5 rounded-md font-medium text-nocturne bg-luminous hover:bg-luminous-hover hover:scale-[1.03] transition-all duration-300 shadow-md shadow-luminous/20 hover:shadow-amber/20 cursor-pointer"
+              id="cta-subscribe-button"
+            >
+              Subscribe
+            </a>
+          </div>
+          <div class="menu:hidden flex items-center gap-1">
+            <button
+              type="button"
+              data-search-trigger="true"
+              aria-label="Search notes"
+              id="search-header-button-mobile"
+              class="nav-link inline-flex items-center justify-center p-2 rounded-md hover:text-accent-amber hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent-amber"
+            >
+              <span class="sr-only">Search notes</span>
+              <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"></path>
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="nav-link inline-flex items-center justify-center p-2 rounded-md hover:text-accent-amber hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent-amber"
+              aria-controls="mobile-menu"
+              aria-expanded="false"
+              id="mobile-menu-toggle"
+            >
+              <span class="sr-only">Open main menu</span>
+              <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" id="menu-icon-open">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+              </svg>
+              <svg class="hidden h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" id="menu-icon-close">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="fixed inset-0 z-[60] bg-nocturne/70 backdrop-blur-sm opacity-0 invisible transition-all duration-300 menu:hidden" id="mobile-menu-overlay" aria-hidden="true"></div>
+
+    <aside
+      class="fixed top-0 right-0 z-[70] h-screen w-[88%] max-w-sm bg-primary/95 backdrop-blur-xl border-l border-outline shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out overflow-y-auto menu:hidden"
+      id="mobile-menu"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Mobile navigation"
+    >
+      <div class="flex items-center justify-between h-16 px-5 border-b border-outline flex-shrink-0">
+        <Logo size="sm" showText={true} variant="light" />
+        <button type="button" class="nav-link inline-flex items-center justify-center p-2 rounded-md hover:text-accent-amber" id="mobile-menu-close" aria-label="Close menu">
+          <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      <nav class="px-5 pt-4 pb-8 space-y-1" aria-label="Mobile navigation">
+        <a href="/notes/" class="block px-3 py-2.5 rounded-md text-base font-medium text-on-surface hover:bg-white/10 hover:text-accent-amber transition-all duration-200" id="mobile-nav-notes">Notes</a>
+        <a href="/tags/" class="block px-3 py-2.5 rounded-md text-base font-medium text-on-surface hover:bg-white/10 hover:text-accent-amber transition-all duration-200" id="mobile-nav-tags">Tags</a>
+
+        <div class="pt-3 rule-line">
+          <h3 class="px-3 pb-1.5 pt-3 text-xs font-semibold text-accent-amber uppercase tracking-wider">Jampuk</h3>
+          <a href={WEBSITE_URL} class="block px-3 py-2.5 rounded-md text-base font-medium text-on-surface hover:bg-white/10 hover:text-accent-amber transition-all duration-200" id="mobile-site-home">
+            <span>Jampuk.com</span>
+          </a>
+          <a href={`${WEBSITE_URL}/solutions`} class="block px-3 py-2.5 rounded-md text-base font-medium text-on-surface hover:bg-white/10 hover:text-accent-amber transition-all duration-200" id="mobile-site-solutions">Solutions</a>
+          <a href={SITE.author.profileUrl} class="block px-3 py-2.5 rounded-md text-base font-medium text-on-surface hover:bg-white/10 hover:text-accent-amber transition-all duration-200" id="mobile-site-principal">Principal Profile</a>
+          <a
+            href="https://www.linkedin.com/company/jampuk"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="block px-3 py-2.5 rounded-md text-base font-medium text-on-surface hover:bg-white/10 hover:text-accent-amber transition-all duration-200"
+            id="mobile-site-linkedin"
+          >
+            Follow on LinkedIn
+          </a>
+        </div>
+
+        <div class="pt-5 pb-1 rule-line flex flex-col gap-3">
+          <a href="#" data-subscribe-trigger="true" class="subscribe-cta w-full" id="mobile-nav-subscribe">Subscribe</a>
+          <button type="button" data-search-trigger="true" aria-controls="search-modal" aria-haspopup="dialog" class="search-cta w-full" id="mobile-nav-search">Search</button>
+        </div>
+      </nav>
+
+      <div class="px-8 pb-8">
+        <div class="rule-line pt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-on-surface/50">
+          <a href={`${WEBSITE_URL}/terms`} class="hover:text-accent-amber transition-colors duration-200" id="mobile-legal-terms">Terms &amp; Conditions</a>
+          <span class="text-on-surface/30">|</span>
+          <a href={`${WEBSITE_URL}/privacy`} class="hover:text-accent-amber transition-colors duration-200" id="mobile-legal-privacy">Privacy Policy</a>
+        </div>
+      </div>
+    </aside>
+
+    <main class="flex-1">
+      <slot />
+    </main>
+
+    <Footer />
+    <ConsentBanner />
+    <SubscribeModal />
+    <SearchModal />
+    <ScrollToTop />
+    <Toast />
+
+    <script>
+      // Header scroll progress: drives the tint fade + hairline via --header-scroll-progress (0..1)
+      const header = document.getElementById("site-header");
+      let ticking = false;
+      const update = () => {
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        const p = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+        header?.style.setProperty("--header-scroll-progress", p.toFixed(4));
+        header?.classList.toggle("is-top", window.scrollY <= 8);
+        header?.classList.toggle("is-scrolled", window.scrollY > 8);
+        ticking = false;
+      };
+      const onScroll = () => {
+        if (!ticking) {
+          ticking = true;
+          requestAnimationFrame(update);
+        }
+      };
+      addEventListener("scroll", onScroll, { passive: true });
+      addEventListener("resize", onScroll, { passive: true });
+      update();
+    </script>
+
+    <script>
+      // Off-canvas mobile menu (slides in from right, below 900px)
+      const menuBtn = document.getElementById("mobile-menu-toggle");
+      const mobileMenu = document.getElementById("mobile-menu");
+      const mobileOverlay = document.getElementById("mobile-menu-overlay");
+      const mobileMenuClose = document.getElementById("mobile-menu-close");
+      const menuIconOpen = document.getElementById("menu-icon-open");
+      const menuIconClose = document.getElementById("menu-icon-close");
+
+      const isMobileMenuOpen = () =>
+        !!mobileMenu && !mobileMenu.classList.contains("translate-x-full");
+
+      const setMobileMenu = (open) => {
+        if (!mobileMenu || !mobileOverlay || !menuBtn) return;
+        menuBtn.setAttribute("aria-expanded", String(open));
+        mobileMenu.classList.toggle("translate-x-full", !open);
+        mobileOverlay.classList.toggle("opacity-0", !open);
+        mobileOverlay.classList.toggle("invisible", !open);
+        if (menuIconOpen && menuIconClose) {
+          menuIconOpen.classList.toggle("hidden", open);
+          menuIconClose.classList.toggle("hidden", !open);
+        }
+        // Never unlock body scroll while a modal owns it
+        const modalOpen = ["search-modal", "subscribe-modal"].some((id) => {
+          const modal = document.getElementById(id);
+          return !!modal && !modal.classList.contains("hidden");
+        });
+        if (!(modalOpen && !open)) document.body.style.overflow = open ? "hidden" : "";
+      };
+
+      if (menuBtn && mobileMenu && mobileOverlay) {
+        menuBtn.addEventListener("click", () => setMobileMenu(!isMobileMenuOpen()));
+        mobileOverlay.addEventListener("click", () => setMobileMenu(false));
+        mobileMenuClose?.addEventListener("click", () => setMobileMenu(false));
+        window.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && isMobileMenuOpen()) setMobileMenu(false);
+        });
+        mobileMenu.addEventListener("click", (e) => {
+          const target = e.target instanceof HTMLElement ? e.target : null;
+          if (target && target.closest("a[href], [data-search-trigger]")) setMobileMenu(false);
+        });
+        // Auto-close if viewport grows past the 900px breakpoint
+        const desktopQuery = window.matchMedia("(min-width: 900px)");
+        const handleDesktop = (mq) => {
+          if (mq.matches) setMobileMenu(false);
+        };
+        if (desktopQuery.addEventListener) {
+          desktopQuery.addEventListener("change", handleDesktop);
+        } else if (desktopQuery.addListener) {
+          desktopQuery.addListener(handleDesktop);
+        }
+        handleDesktop(desktopQuery);
+      }
+    </script>
+  </body>
+</html>

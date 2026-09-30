@@ -1,0 +1,55 @@
+---
+---
+
+<button
+  id="scroll-to-top"
+  type="button"
+  class="fixed bottom-20 right-4 sm:right-6 z-[75] flex items-center justify-center w-11 h-11 rounded-full bg-surface-container border border-outline text-on-surface-variant shadow-level-2 opacity-0 invisible translate-y-2 transition-all duration-300 hover:border-accent-amber hover:text-accent-amber focus:outline-none focus:ring-2 focus:ring-accent-amber focus:ring-offset-2 focus:ring-offset-surface"
+  aria-label="Scroll to top"
+>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    class="h-5 w-5"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    stroke-width="2"
+    aria-hidden="true"
+  >
+    <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+  </svg>
+</button>
+
+<script>
+  (function () {
+    var btn = document.getElementById("scroll-to-top");
+    if (!btn) return;
+
+    var threshold = 400;
+    var ticking = false;
+
+    var update = function () {
+      var show = window.scrollY > threshold;
+      btn.classList.toggle("opacity-0", !show);
+      btn.classList.toggle("invisible", !show);
+      btn.classList.toggle("translate-y-2", !show);
+      ticking = false;
+    };
+
+    var onScroll = function () {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(update);
+      }
+    };
+
+    addEventListener("scroll", onScroll, { passive: true });
+    addEventListener("resize", onScroll, { passive: true });
+
+    btn.addEventListener("click", function () {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    update();
+  })();
+</script>

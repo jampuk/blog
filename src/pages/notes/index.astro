@@ -1,0 +1,25 @@
+---
+import Layout from "@layouts/Layout.astro";
+import PostCard from "@components/PostCard.astro";
+import { getPublishedPosts, getNoteNumber } from "@lib/posts";
+
+const posts = await getPublishedPosts();
+const noteIds = await Promise.all(posts.map((p) => getNoteNumber(p)));
+---
+
+<Layout title="All notes" description="Every field note on secure, compliant AI delivery - newest first.">
+  <section class="max-w-ledger mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
+    <p class="section-marker">// Archive</p>
+    <h1 class="font-display text-4xl sm:text-5xl font-bold mb-4">All notes</h1>
+    <p class="text-on-surface-variant max-w-reading leading-relaxed mb-10">
+      Newest first. Written by the principal.
+    </p>
+    {posts.length === 0 ? (
+      <p class="text-on-surface-variant">No published notes yet.</p>
+    ) : (
+      <div class="ledger-list">
+        {posts.map((post, i) => <PostCard post={post} noteId={noteIds[i]} />)}
+      </div>
+    )}
+  </section>
+</Layout>

@@ -1,0 +1,144 @@
+---
+import { Image } from 'astro:assets';
+import { SITE } from "@data/site";
+import CrossfadeImage from "@components/CrossfadeImage.astro";
+import authorAvatar from "@assets/images/author-avatar.jpg";
+import hafizHomepage from "@assets/images/hafiz-homepage.jpg";
+import hafizHomepageAlt from "@assets/images/hafiz-homepage-2.jpg";
+import hafizPrincipal from "@assets/images/hafiz-principal-profile.jpg";
+import hafizPrincipalAlt from "@assets/images/hafiz-principal-profile-2.jpg";
+
+interface Props {
+  variant?: 'byline' | 'card';
+}
+
+const { variant = 'card' } = Astro.props;
+
+const authorPhotos = [
+  {
+    src: hafizHomepage,
+    alt: "Hafiz Zainudin presenting at MAVCAP Funding Innovation event, speaking into microphone with Growth Charger banner in background",
+    subject: "Hafiz Zainudin Founder Spotlight",
+    width: 416,
+    height: 555,
+  },
+  {
+    src: hafizHomepageAlt,
+    alt: "Hafiz Zainudin in a professional speaking engagement at a technology industry event, addressing an audience from stage",
+    subject: "Hafiz Zainudin Founder Spotlight Alternate",
+    width: 416,
+    height: 555,
+  },
+  {
+    src: hafizPrincipal,
+    alt: "Hafiz Zainudin presenting at Growth Charger event, speaking into microphone with business metrics presentation in background",
+    subject: "Hafiz Zainudin Principal Profile",
+    width: 480,
+    height: 640,
+  },
+  {
+    src: hafizPrincipalAlt,
+    alt: "Hafiz Zainudin in a professional speaking engagement at an AI governance or technology conference, addressing an audience from stage",
+    subject: "Hafiz Zainudin Principal Profile Alternate",
+    width: 480,
+    height: 640,
+  },
+];
+
+const authorChips = [
+  'AI Steward',
+  'NAIO Governance & Ethics WG',
+  'MTSFB AI Task Force',
+  'Mentor',
+];
+---
+
+{variant === 'byline' && (
+  <a
+    href={SITE.author.profileUrl}
+    rel="author"
+    class="inline-flex items-center gap-3 group"
+    aria-label={`Author: ${SITE.author.name}, ${SITE.author.jobTitle}`}
+  >
+    <Image
+      src={authorAvatar}
+      alt={SITE.author.name}
+      width={72}
+      height={72}
+      loading="eager"
+      class="w-9 h-9 rounded-full object-cover object-center border border-outline group-hover:border-tertiary transition-colors"
+    />
+    <span class="note-meta group-hover:text-tertiary transition-colors">
+      by {SITE.author.name}
+    </span>
+  </a>
+)}
+
+{variant === 'card' && (
+  <section class="mt-16 pt-10 rule-line" aria-labelledby="author-snippet-heading" data-pagefind-ignore>
+    <p class="section-marker" id="author-snippet-heading">// Author</p>
+    <div class="grid gap-8 md:grid-cols-12 items-start">
+      <div class="md:col-span-3">
+        <a
+          href={SITE.author.profileUrl}
+          class="group relative block rounded-lg overflow-hidden border border-outline shadow-level-2 aspect-[4/5] hover:border-tertiary/60 transition-colors duration-300"
+          aria-label={`Read the full principal profile of ${SITE.author.name}`}
+        >
+          <CrossfadeImage images={authorPhotos} loading="lazy" interval={4} />
+          <div class="absolute inset-0 bg-gradient-to-t from-nocturne/95 via-nocturne/60 to-transparent pointer-events-none"></div>
+          <div class="absolute bottom-0 inset-x-0 p-4 text-center space-y-1.5">
+            <p class="font-heading font-bold text-base text-on-surface drop-shadow-lg">
+              {SITE.author.name}
+            </p>
+            <p class="text-[11px] text-luminous uppercase font-bold tracking-wider drop-shadow-md">
+              {SITE.author.jobTitle}
+            </p>
+          </div>
+        </a>
+      </div>
+
+      <div class="md:col-span-9 space-y-5">
+        <p class="text-sm text-on-surface-variant leading-relaxed max-w-[60ch]">
+          {SITE.author.bio}
+        </p>
+        <ul class="flex flex-wrap gap-2" aria-label="Author credentials and affiliations">
+          {authorChips.map((chip) => (
+            <li class="px-3 py-1 rounded-full border border-outline bg-surface-container text-[11px] font-mono text-on-surface-variant">
+              {chip}
+            </li>
+          ))}
+        </ul>
+        <p class="pt-1 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <a
+            href={SITE.author.profileUrl}
+            rel="author"
+            class="text-sm font-heading font-semibold text-tertiary hover:text-on-surface transition-colors"
+          >
+            Principal profile &rarr;
+          </a>
+          <span class="text-outline" aria-hidden="true">\</span>
+          <a
+            href={SITE.author.linkedinUrl}
+            target="_blank"
+            rel="noopener noreferrer author me"
+            class="note-meta hover:text-tertiary transition-colors"
+          >
+            linkedin
+          </a>
+          <span class="text-outline" aria-hidden="true">\</span>
+          <a
+            href={SITE.author.mastodonUrl}
+            target="_blank"
+            rel="me noopener noreferrer author"
+            class="note-meta hover:text-tertiary transition-colors"
+          >
+            microblog
+          </a>
+        </p>
+      </div>
+    </div>
+    <p class="marginalia mt-8">
+      // Vol. {SITE.volume} - {SITE.name}
+    </p>
+  </section>
+)}

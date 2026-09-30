@@ -1,0 +1,178 @@
+---
+import { SITE } from "@data/site";
+
+const rssUrl = `${SITE.url}/rss.xml`;
+---
+
+<div
+  id="subscribe-modal"
+  class="fixed inset-0 z-[100] flex items-center justify-center bg-nocturne/80 backdrop-blur-md hidden opacity-0 subscribe-overlay"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="subscribe-modal-title"
+>
+  <div
+    id="subscribe-modal-panel"
+    class="subscribe-panel relative w-full max-w-lg bg-surface-container border border-outline rounded-xl shadow-2xl flex flex-col overflow-hidden m-4 transform scale-95"
+  >
+    <div class="flex items-center justify-between px-6 py-4 bg-nocturne border-b border-outline">
+      <div>
+        <h3 id="subscribe-modal-title" class="text-lg font-bold font-heading text-on-surface">
+          Subscribe
+        </h3>
+        <p class="text-xs text-accent-amber font-mono tracking-wider">
+          // Stay in the loop
+        </p>
+      </div>
+      <button
+        type="button"
+        id="btn-close-subscribe-modal"
+        class="text-on-surface-variant hover:text-on-surface hover:bg-white/10 p-2 rounded-lg transition-colors focus:outline-none"
+        aria-label="Close subscribe modal"
+      >
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="p-6 space-y-6">
+      <div>
+        <h4 class="text-sm font-heading font-semibold text-on-surface mb-2">RSS Feed</h4>
+        <p class="text-sm text-on-surface-variant leading-relaxed mb-3">
+          Get new notes in your reader. Copy the feed URL below.
+        </p>
+        <div class="flex items-center gap-2">
+          <code class="flex-1 text-xs font-mono bg-primary border border-outline rounded-md px-3 py-2.5 text-tertiary truncate">
+            {rssUrl}
+          </code>
+          <button
+            type="button"
+            id="btn-copy-rss"
+            class="inline-flex items-center justify-center px-4 py-2.5 rounded-md font-heading font-semibold text-sm bg-surface-high text-on-surface border border-outline hover:border-tertiary transition-colors whitespace-nowrap"
+            aria-label="Copy RSS feed URL to clipboard"
+            data-rss-url={rssUrl}
+          >
+            <span>Copy</span>
+          </button>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 mt-3">
+          <a
+            href={`https://feedly.com/i/subscription/${encodeURIComponent(`feed/${rssUrl}`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center px-3 py-1.5 rounded-md bg-surface-container hover:bg-surface-high text-on-surface-variant hover:text-tertiary transition-colors text-xs font-heading"
+          >
+            Feedly
+          </a>
+          <a
+            href={`https://www.inoreader.com/feed/${rssUrl}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center px-3 py-1.5 rounded-md bg-surface-container hover:bg-surface-high text-on-surface-variant hover:text-tertiary transition-colors text-xs font-heading"
+          >
+            Inoreader
+          </a>
+          <a
+            href={`https://feedbin.com/?subscribe=${rssUrl}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center px-3 py-1.5 rounded-md bg-surface-container hover:bg-surface-high text-on-surface-variant hover:text-tertiary transition-colors text-xs font-heading"
+          >
+            Feedbin
+          </a>
+          <a
+            href={`feed://${rssUrl.replace(/^https?:\/\//, "")}`}
+            class="inline-flex items-center px-3 py-1.5 rounded-md bg-surface-container hover:bg-surface-high text-on-surface-variant hover:text-tertiary transition-colors text-xs font-heading"
+          >
+            Native reader
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var modal = document.getElementById("subscribe-modal");
+    var panel = document.getElementById("subscribe-modal-panel");
+    var overlay = modal;
+    var btnClose = document.getElementById("btn-close-subscribe-modal");
+    var btnCopy = document.getElementById("btn-copy-rss");
+    var rssUrl = btnCopy ? btnCopy.getAttribute("data-rss-url") || "" : "";
+    function openModal(e) {
+      if (e) e.preventDefault();
+      if (!modal) return;
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+      modal.offsetHeight;
+      modal.classList.remove("opacity-0");
+      if (panel) {
+        panel.classList.remove("scale-95");
+        panel.classList.add("scale-100");
+      }
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeModal() {
+      if (!modal) return;
+      modal.classList.add("opacity-0");
+      if (panel) {
+        panel.classList.remove("scale-100");
+        panel.classList.add("scale-95");
+      }
+      document.body.style.overflow = "";
+      setTimeout(function () {
+        modal.classList.remove("flex");
+        modal.classList.add("hidden");
+      }, 300);
+    }
+
+    if (btnClose) btnClose.addEventListener("click", closeModal);
+    if (modal) {
+      modal.addEventListener("click", function (e) {
+        if (e.target === modal) closeModal();
+      });
+    }
+    window.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeModal();
+    });
+
+    function bindTriggers() {
+      var triggers = document.querySelectorAll("[data-subscribe-trigger]");
+      triggers.forEach(function (el) {
+        if (el.getAttribute("data-subscribe-bound") === "true") return;
+        el.setAttribute("data-subscribe-bound", "true");
+        el.addEventListener("click", openModal);
+      });
+    }
+
+    bindTriggers();
+
+    if (btnCopy) {
+      btnCopy.addEventListener("click", async function () {
+        try {
+          await navigator.clipboard.writeText(rssUrl);
+        } catch (_) {
+          var ta = document.createElement("textarea");
+          ta.value = rssUrl;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand("copy"); } catch (_) {}
+          document.body.removeChild(ta);
+        }
+        document.dispatchEvent(
+          new CustomEvent("toast:show", {
+            detail: `Copied ${rssUrl} into clipboard`,
+          })
+        );
+      });
+    }
+
+    (window as any).openSubscribeModal = openModal;
+  })();
+</script>

@@ -1,0 +1,125 @@
+---
+// Cookie consent banner (Google Consent Mode v2)
+// Only renders when a GA Measurement ID is configured via env var.
+// Same contract as the website ConsentBanner: the stored decision is applied
+// to GA via `gtag("consent", "update")` and the banner is a fixed bottom bar.
+import { CONSENT_STORAGE_KEY, CONSENT_EVENT } from "@lib/consent";
+
+const gaId = import.meta.env.PUBLIC_GA_MEASUREMENT_ID;
+---
+
+{
+    gaId && (
+        <Fragment>
+            <div
+                id="consent-banner"
+                class="fixed bottom-0 left-0 right-0 z-[90] bg-nocturne/95 backdrop-blur-xl border-t border-outline shadow-2xl hidden"
+                role="dialog"
+                aria-live="polite"
+                aria-label="Cookie consent"
+            >
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <p class="text-sm text-on-surface/80 leading-relaxed max-w-2xl">
+                        We use privacy-friendly analytics to understand how this
+                        site performs. In the EEA and UK, analytics stay disabled
+                        until you accept. You can change your choice any time.
+                    </p>
+                    <div class="flex items-center space-x-3 flex-shrink-0">
+                        <button
+                            type="button"
+                            id="consent-reject"
+                            class="px-4 py-2 rounded-md text-sm font-medium text-on-surface/80 hover:text-on-surface border border-outline hover:bg-white/5 transition-colors duration-200"
+                        >
+                            Reject
+                        </button>
+                        <button
+                            type="button"
+                            id="consent-accept"
+                            class="px-4 py-2 rounded-md text-sm font-medium text-nocturne bg-luminous hover:bg-luminous-hover hover:scale-[1.03] transition-all duration-200 shadow-md shadow-luminous/20"
+                        >
+                            Accept
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <script is:inline define:vars={{ CONSENT_STORAGE_KEY, CONSENT_EVENT }}>
+                (function () {
+                    const banner = document.getElementById("consent-banner");
+                    if (!banner) return;
+                    const footer = document.querySelector("footer");
+
+                    function applyConsent(state) {
+                        if (window.gtag) {
+                            window.gtag("consent", "update", {
+                                ad_storage: state,
+                                ad_user_data: state,
+                                ad_personalization: state,
+                                analytics_storage: state,
+                            });
+                        }
+                        try {
+                            localStorage.setItem(CONSENT_STORAGE_KEY, state);
+                        } catch (e) {
+                            /* storage unavailable */
+                        }
+                        banner.classList.add("hidden");
+                        if (footer) footer.style.paddingBottom = "";
+                    }
+
+                    let stored = null;
+                    try {
+                        stored = localStorage.getItem(CONSENT_STORAGE_KEY);
+                    } catch (e) {
+                        /* storage unavailable */
+                    }
+
+                    if (stored === "granted" || stored === "denied") {
+                        // Apply silently without showing the banner
+                        applyConsent(stored);
+                    } else {
+                        // Show the banner immediately on page load
+                        banner.classList.remove("hidden");
+                    }
+
+                    // Pad the footer when the visitor reaches the bottom so the
+                    // fixed consent bar never covers footer content
+                    function syncFooterPadding() {
+                        if (!footer || banner.classList.contains("hidden")) return;
+                        const scrollBottom =
+                            window.innerHeight + window.scrollY;
+                        const docHeight = document.documentElement.scrollHeight;
+                        const atBottom =
+                            scrollBottom >= docHeight - 4 ||
+                            docHeight <= window.innerHeight + 4;
+                        footer.style.paddingBottom = atBottom
+                            ? banner.offsetHeight + "px"
+                            : "";
+                    }
+                    window.addEventListener("scroll", syncFooterPadding, {
+                        passive: true,
+                    });
+                    window.addEventListener("resize", syncFooterPadding);
+                    syncFooterPadding();
+
+                    const accept = document.getElementById("consent-accept");
+                    const reject = document.getElementById("consent-reject");
+                    if (accept)
+                        accept.addEventListener("click", () =>
+                            applyConsent("granted"),
+                        );
+                    if (reject)
+                        reject.addEventListener("click", () =>
+                            applyConsent("denied"),
+                        );
+
+                    // "Cookie settings" link in the footer re-opens the prompt
+                    window.addEventListener(CONSENT_EVENT, function () {
+                        banner.classList.remove("hidden");
+                        syncFooterPadding();
+                    });
+                })();
+            </script>
+        </Fragment>
+    )
+}

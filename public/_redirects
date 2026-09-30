@@ -1,0 +1,8 @@
+# Cloudflare Pages redirects. Add apex/www rules in the
+# Cloudflare dashboard (Bulk Redirects) rather than here.
+/admin /admin/ 301
+/blog /notes/ 301
+/blog/tags /tags/ 301
+/blog/tags/* /tags/:splat 301
+/blog/* /:splat 301
+/rss.xml/ /rss.xml 301

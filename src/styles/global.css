@@ -1,0 +1,914 @@
+@import "tailwindcss";
+
+/* Tailwind v4 theme (migrated from tailwind.config.mjs, see README.md). */
+@theme {
+  /* Breakpoints (theme.screens). sm..2xl match v4 defaults; xs and menu are
+     bespoke and used by Layout.astro's responsive nav classes. */
+  --breakpoint-xs: 400px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-menu: 900px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
+  /* --- Canonical Jampuk Design System tokens (DESIGN.md, dark alpha) --- */
+  --color-primary: #0B132B; /* Midnight Obsidian */
+  --color-primary-dark: #1C2541; /* Deep Slate */
+  --color-primary-700: #1C2541;
+  --color-primary-800: #0B132B;
+  --color-primary-900: #0B132B;
+  --color-on-primary: #F8FAFC;
+  --color-secondary: #1C2541; /* Deep Slate */
+  --color-secondary-dark: #1E293B;
+  --color-secondary-light: #334155;
+  --color-on-secondary: #F8FAFC;
+  --color-tertiary: #0EA5E9; /* Enterprise Cyan */
+  --color-tertiary-dark: #38BDF8; /* button-primary-hover */
+  --color-tertiary-light: #7DD3FC;
+  --color-on-tertiary: #0B132B;
+  --color-accent-amber: #F59E0B; /* Gold Iris */
+  --color-accent-amber-dark: #D97706;
+  --color-accent-amber-light: #FCD34D;
+  --color-on-accent-amber: #0B132B;
+  --color-surface: #0F172A; /* Nocturne Base - page canvas */
+  --color-surface-container: #1E293B; /* Card / panel fill */
+  --color-surface-high: #334155; /* Elevated surfaces & hover states */
+  --color-surface-dark: #0B132B; /* legacy alias -> primary */
+  --color-surface-darklight: #1E293B; /* legacy alias -> surface-container */
+  --color-on-surface: #E2E8F0;
+  --color-on-surface-variant: #94A3B8;
+  --color-neutral: #64748B;
+  --color-neutral-dark: #334155; /* neutral-muted */
+  --color-neutral-light: #F8FAFC;
+  --color-neutral-muted: #334155;
+  --color-outline: #334155;
+  --color-error: #EF4444;
+  --color-error-light: #FCA5A5;
+  --color-on-error: #FFFFFF;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-info: #7DD3FC;
+
+  /* --- Legacy aliases (remapped onto the canonical palette) --- */
+  --color-nocturne: #0B132B;
+  --color-nocturne-900: #0B132B;
+  --color-nocturne-800: #1E293B; /* surface-container */
+  --color-nocturne-700: #1C2541;
+  --color-shadow: #1C2541;
+  --color-shadow-600: #16203C;
+  --color-shadow-500: #1C2541;
+  --color-shadow-400: #334155; /* surface-container-high */
+  --color-luminous: #0EA5E9;
+  --color-luminous-dark: #38BDF8;
+  --color-luminous-hover: #38BDF8;
+  --color-luminous-light: #7DD3FC;
+  --color-amber: #F59E0B;
+  --color-amber-dark: #D97706;
+  --color-amber-light: #FCD34D;
+  --color-ink: #E2E8F0; /* on-surface */
+  --color-ink-muted: #94A3B8; /* on-surface-variant */
+  --color-ink-subtle: #64748B; /* neutral */
+  --color-accent: #0EA5E9;
+  --color-accent-dark: #38BDF8;
+  --color-accent-hover: #38BDF8;
+  --color-accent-light: #7DD3FC;
+  --color-brandgold: #F59E0B;
+  --color-brandgold-dark: #D97706;
+  --color-brandgold-light: #FCD34D;
+
+  /* --- Typography --- */
+  --font-display: "Bricolage Grotesque", "Space Grotesk", sans-serif;
+  --font-heading: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "Fira Code", monospace;
+
+  /* --- Border radius (legacy v3 scale: 4/8/12/16px) --- */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* --- Elevation (DESIGN.md levels) --- */
+  --shadow-level-2: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(0, 245, 212, 0.25);
+  --shadow-glow-amber: 0 0 20px rgba(255, 159, 28, 0.25);
+
+  /* --- Tracking / leading / max-width (editorial layer) --- */
+  --tracking-editorial: 0.18em;
+  --tracking-note-id: 0.12em;
+  --tracking-mono-meta: 0.06em;
+  --tracking-marginalia: 0.03em;
+  --leading-reading: 1.75;
+  --leading-marginalia: 1.7;
+  /* max-w-* utilities read from the --container-* namespace in v4 */
+  --container-reading: 65ch;
+  --container-ledger: 760px;
+  --container-hero-notebook: 640px;
+}
+
+@layer base {
+  :root {
+    /* Jampuk Design System tokens (DESIGN.md) */
+    --color-primary: #0B132B; /* Midnight Obsidian */
+    --color-on-primary: #F8FAFC;
+    --color-secondary: #1C2541; /* Deep Slate */
+    --color-on-secondary: #F8FAFC;
+    --color-tertiary: #0EA5E9; /* Enterprise Cyan */
+    --color-on-tertiary: #0B132B;
+    --color-accent-amber: #F59E0B; /* Warm Gold */
+    --color-on-accent-amber: #0B132B;
+    --color-surface: #0F172A; /* Nocturne Base */
+    --color-surface-container: #1E293B;
+    --color-surface-container-high: #334155;
+    --color-on-surface: #E2E8F0;
+    --color-on-surface-variant: #94A3B8;
+    --color-neutral: #64748B;
+    --color-neutral-muted: #334155;
+    --color-outline: #334155;
+    --color-error: #EF4444;
+    --color-on-error: #FFFFFF;
+
+    /* Legacy aliases */
+    --color-nocturne: #0B132B;
+    --color-shadow: #1C2541;
+    --color-luminous: #0EA5E9;
+    --color-amber: #F59E0B;
+    --color-ink: #E2E8F0;
+    --color-ink-muted: #94A3B8;
+    --color-ink-subtle: #64748B;
+
+    /* Typography */
+    --font-display: 'Bricolage Grotesque', 'Space Grotesk', sans-serif;
+    --font-heading: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'Fira Code', monospace;
+
+    /* Elevation (DESIGN.md levels) */
+    --shadow-sm: 0 1px 2px 0 rgba(2, 6, 23, 0.4);
+    --shadow-md: 0 10px 30px -10px rgba(0, 0, 0, 0.5); /* Level 2 */
+    --shadow-lg: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    --shadow-glow: 0 0 20px rgba(14, 165, 233, 0.25); /* Level 3 */
+    --shadow-glow-amber: 0 0 20px rgba(245, 158, 11, 0.25);
+  }
+
+  html {
+    font-family: var(--font-body);
+    scroll-behavior: smooth;
+    background-color: #0F172A; /* surface */
+    color: #E2E8F0; /* on-surface */
+  }
+
+  body {
+    @apply antialiased min-h-screen flex flex-col;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+  }
+
+  h3, h4, h5, h6 {
+    font-weight: 600;
+  }
+
+  /* Display face reserved for hero titles and main taglines (DESIGN.md) */
+  h1 {
+    font-family: var(--font-display);
+    letter-spacing: -0.03em;
+  }
+}
+
+/* Card surface (DESIGN.md: surface-container + 1px outline border) */
+.glass-panel {
+  background-color: #1E293B; /* surface-container */
+  border: 1px solid #334155; /* outline */
+}
+.glass-panel:hover {
+  border-color: rgba(14, 165, 233, 0.28);
+}
+
+/* Code / terminal display (DESIGN.md code-block recipe: primary fill + outline border) */
+.glass-panel-dark {
+  background-color: #0B132B; /* primary */
+  border: 1px solid #334155; /* outline */
+}
+
+/* Sticky header - quiet, reading-first.
+   --header-scroll-progress (0..1, set by inline script in Layout.astro)
+   drives a subtle horizontal tint fade + bottom hairline. */
+.site-header {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  background: linear-gradient(90deg, rgba(11, 19, 43, 0.97) 0%, rgba(15, 23, 42, 0.92) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-outline);
+}
+
+/* Scroll-driven horizontal tint: cyan (left) -> amber (right) */
+.site-header::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(14, 165, 233, 0.15) 0%,
+    rgba(14, 165, 233, 0.05) 50%,
+    rgba(245, 158, 11, 0.12) 100%
+  );
+  opacity: var(--header-scroll-progress, 0);
+}
+
+/* Thin scroll-progress hairline along the header's bottom edge */
+.site-header::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(90deg, var(--color-tertiary), var(--color-accent-amber));
+  transform: scaleX(var(--header-scroll-progress, 0));
+  transform-origin: left center;
+}
+
+/* Nav links */
+.site-header .nav-link {
+  color: var(--color-on-surface-variant);
+}
+.site-header .nav-link:hover {
+  color: var(--color-accent-amber);
+}
+
+/* Subscribe button in header: quiet outline at top; once scrolled the
+   inline utilities render the website-matching filled cyan CTA. */
+.site-header.is-top #cta-subscribe-button {
+  background-color: transparent;
+  border: 1px solid var(--color-outline);
+  color: var(--color-on-surface-variant);
+  box-shadow: none;
+}
+.site-header.is-top #cta-subscribe-button:hover {
+  background-color: transparent;
+  border-color: var(--color-accent-amber);
+  color: var(--color-accent-amber);
+  box-shadow: none;
+}
+
+/* Mega menu: translucent frosted dark panel */
+.mega-menu {
+  background: rgba(11, 19, 43, 0.85);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid rgba(14, 165, 233, 0.18);
+  box-shadow: 0 20px 40px -12px rgba(2, 6, 23, 0.7);
+}
+.site-header.is-scrolled .mega-menu {
+  background: rgba(11, 19, 43, 0.97);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+.mega-menu .mega-promo {
+  background: transparent;
+}
+
+/* Subtle Hover Animations */
+.hover-lift {
+  @apply transition-all duration-300 ease-out;
+}
+.hover-lift:hover {
+  @apply -translate-y-1 shadow-lg shadow-nocturne/40;
+}
+
+/* Primary Action Button (DESIGN.md button-primary:
+   tertiary bg, on-tertiary text, label-lg = Space Grotesk 600,
+   rounded-md 8px, height 44px, padding 0 20px, hover #38BDF8) */
+.btn-primary {
+  @apply inline-flex items-center justify-center;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  background-color: var(--color-tertiary);
+  color: var(--color-on-tertiary);
+  border: 1px solid var(--color-tertiary);
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 8px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-primary:hover {
+  background-color: #38BDF8;
+  border-color: #38BDF8;
+}
+
+.btn-amber {
+  @apply inline-flex items-center justify-center;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  background-color: var(--color-accent-amber);
+  color: var(--color-on-accent-amber);
+  border: 1px solid var(--color-accent-amber);
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 8px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-amber:hover {
+  background-color: #FCD34D;
+  border-color: #FCD34D;
+}
+
+/* Subscribe CTA (shared: footer + mobile drawer).
+   Mirrors the website nav CTA ("Book Briefing"): Inter 500 filled cyan,
+   rounded-md, luminous glow shadow, scale + amber glow on hover. */
+.subscribe-cta {
+  @apply inline-flex items-center justify-center font-medium bg-luminous text-nocturne shadow-md shadow-luminous/20 transition-all duration-300 cursor-pointer;
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  padding: 10px 20px;
+  border-radius: 6px;
+}
+.subscribe-cta:hover {
+  @apply bg-luminous-hover shadow-amber/20;
+  transform: scale(1.03);
+}
+
+/* Search CTA (mobile drawer). Secondary action below Subscribe. */
+.search-cta {
+  @apply inline-flex items-center justify-center font-medium border border-outline text-on-surface hover:text-accent-amber hover:border-accent-amber transition-all duration-300 cursor-pointer;
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  padding: 10px 20px;
+  border-radius: 6px;
+}
+
+/* Glow pulses for accents */
+.glow-teal-pulse {
+  box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.45);
+  animation: glow-teal 2s infinite;
+}
+.glow-amber-pulse {
+  box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.45);
+  animation: glow-amber 2s infinite;
+}
+@keyframes glow-teal {
+  0% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.45); }
+  70% { box-shadow: 0 0 0 12px rgba(14, 165, 233, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0); }
+}
+@keyframes glow-amber {
+  0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.45); }
+  70% { box-shadow: 0 0 0 12px rgba(245, 158, 11, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+
+/* Footer link styling */
+.footer-link {
+  color: rgba(226, 232, 240, 0.72);
+  transition: color 0.2s ease;
+}
+.footer-link:hover {
+  color: #0EA5E9; /* luminous */
+}
+
+/* ============================================================
+   Field Ledger editorial layer (blog-specific)
+   Defined in DESIGN.md. These classes differentiate the blog
+   from the main website while preserving brand cohesion.
+   ============================================================ */
+
+/* --- Mono editorial voice --- */
+.note-meta {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+}
+
+.note-id {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--color-accent-amber);
+}
+
+.marginalia {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  letter-spacing: 0.03em;
+  color: var(--color-on-surface-variant);
+}
+
+/* --- Meta strip (above header) --- */
+.meta-strip {
+  background: var(--color-primary);
+  border-bottom: 1px solid var(--color-outline);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+}
+
+/* --- Ledger rows (archive, homepage index) --- */
+.ledger-list {
+  border-top: 1px solid var(--color-outline);
+}
+
+.ledger-row {
+  border-bottom: 1px solid var(--color-outline);
+  transition: background-color 0.15s ease;
+}
+
+.ledger-row:hover {
+  background-color: rgba(226, 232, 240, 0.02);
+}
+
+/* --- Tag pills --- */
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  background: var(--color-surface-container);
+  border: 1px solid var(--color-outline);
+  color: var(--color-on-surface-variant);
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.tag-pill:hover {
+  border-color: var(--color-tertiary);
+  color: var(--color-on-surface);
+}
+
+/* --- Article prose (reading-first) --- */
+.prose-note {
+  max-width: 65ch;
+  font-family: var(--font-body);
+  font-size: 18px;
+  line-height: 1.75;
+  color: var(--color-on-surface);
+}
+
+.prose-note p {
+  margin-bottom: 1.5em;
+}
+
+.prose-note h2 {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  margin-top: 2.5em;
+  margin-bottom: 0.75em;
+  color: var(--color-on-surface);
+}
+
+.prose-note h3 {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+  color: var(--color-on-surface);
+}
+
+.prose-note h4 {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  color: var(--color-on-surface);
+}
+
+.prose-note a {
+  color: var(--color-tertiary);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.prose-note a:hover {
+  border-bottom-color: var(--color-tertiary);
+}
+
+.prose-note strong {
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+
+.prose-note em {
+  font-style: italic;
+}
+
+.prose-note code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--color-surface-container);
+  border: 1px solid var(--color-outline);
+  border-radius: 4px;
+  padding: 2px 6px;
+  color: var(--color-tertiary);
+}
+
+.prose-note pre {
+  background: var(--color-primary) !important;
+  border: 1px solid var(--color-outline);
+  border-radius: 8px;
+  padding: 16px 20px;
+  overflow-x: auto;
+  margin: 1.5em 0;
+}
+
+.prose-note pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-on-surface);
+}
+
+/* --- Code terminal blocks (script in [...slug].astro wraps Shiki output.
+     Plaintext fences stay unwrapped and keep the plain .prose-note pre look) --- */
+.code-terminal {
+  margin: 1.5em 0;
+  background: var(--color-primary);
+  border: 1px solid var(--color-outline);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.code-terminal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px 8px 16px;
+  background: var(--color-primary);
+  border-bottom: 1px solid var(--color-outline);
+}
+
+.code-terminal-lang {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.code-terminal-copy {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+  background: transparent;
+  border: 1px solid var(--color-outline);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.code-terminal-copy:hover {
+  color: var(--color-accent-amber);
+  border-color: var(--color-accent-amber);
+}
+
+.code-terminal-copy.is-copied {
+  color: var(--color-tertiary);
+  border-color: var(--color-tertiary);
+}
+
+.code-terminal-copy:focus-visible {
+  outline: 2px solid var(--color-tertiary);
+  outline-offset: 2px;
+}
+
+.code-terminal pre {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  max-height: calc(10 * 22.4px + 32px);
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-surface-container-high) transparent;
+}
+
+.code-terminal pre::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.code-terminal pre::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.code-terminal pre::-webkit-scrollbar-thumb {
+  background: var(--color-surface-container-high);
+  border-radius: 9999px;
+}
+
+.code-terminal pre::-webkit-scrollbar-thumb:hover {
+  background: var(--color-tertiary);
+}
+
+.prose-note blockquote {
+  border-left: 3px solid var(--color-tertiary);
+  padding: 4px 0 4px 20px;
+  margin: 1.5em 0;
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--color-on-surface-variant);
+  font-style: italic;
+}
+
+.prose-note blockquote p {
+  margin-bottom: 0;
+}
+
+.prose-note ul,
+.prose-note ol {
+  margin: 1.25em 0;
+  padding-left: 1.5em;
+  list-style: revert;
+}
+
+.prose-note li {
+  margin-bottom: 0.5em;
+}
+
+.prose-note ul li::marker {
+  color: var(--color-tertiary);
+}
+
+.prose-note ol li::marker {
+  color: var(--color-accent-amber);
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
+.prose-note hr {
+  border: none;
+  border-top: 1px solid var(--color-outline);
+  margin: 2.5em 0;
+}
+
+.prose-note img {
+  border-radius: 8px;
+  border: 1px solid var(--color-outline);
+  margin: 1.5em 0;
+  max-width: 100%;
+  height: auto;
+}
+
+.prose-note table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 1.5em 0;
+  font-size: 14px;
+  background: var(--color-surface-container);
+  border: 1px solid var(--color-outline);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+.prose-note thead th {
+  background: var(--color-primary);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.4;
+  text-align: left;
+  vertical-align: bottom;
+  padding: 16px;
+  color: var(--color-on-surface);
+}
+
+.prose-note thead th:first-child {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-ink-subtle);
+}
+
+.prose-note tbody td {
+  padding: 14px 16px;
+  line-height: 1.6;
+  color: var(--color-on-surface);
+  font-weight: 500;
+  border-top: 1px solid var(--color-outline);
+}
+
+.prose-note tbody td:first-child {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-ink-subtle);
+  background: rgba(11, 19, 43, 0.6);
+}
+
+.prose-note tbody td code {
+  background: var(--color-primary);
+  border-color: var(--color-surface-container-high);
+  color: var(--color-tertiary);
+}
+
+@media (max-width: 640px) {
+  .prose-note table {
+    font-size: 13px;
+  }
+
+  .prose-note thead th,
+  .prose-note tbody td {
+    padding: 10px 12px;
+  }
+}
+
+/* --- Post sources / footnotes (tagged by rehype-post-sources) --- */
+.prose-note h2.post-sources {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+  margin-top: 3em;
+  margin-bottom: 1em;
+  padding-top: 1.5em;
+  border-top: 1px solid var(--color-outline);
+}
+
+.prose-note .post-sources:not(h2) {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--color-on-surface-variant);
+}
+
+.prose-note .post-sources:not(h2) a {
+  color: var(--color-on-surface-variant);
+}
+
+.prose-note .post-sources:not(h2) a:hover {
+  color: var(--color-tertiary);
+}
+
+.prose-note ul.post-sources li::marker {
+  color: var(--color-neutral);
+}
+
+/* --- Drop cap --- */
+.drop-cap::first-letter {
+  font-family: var(--font-display);
+  font-size: 3.5em;
+  line-height: 0.85;
+  float: left;
+  padding-right: 0.12em;
+  padding-top: 0.05em;
+  color: var(--color-tertiary);
+}
+
+/* --- Pull quote --- */
+.pull-quote {
+  border-left: 3px solid var(--color-accent-amber);
+  padding: 8px 0 8px 24px;
+  margin: 2em 0;
+  font-size: 20px;
+  line-height: 1.6;
+  font-family: var(--font-body);
+  font-weight: 400;
+  color: var(--color-on-surface);
+}
+
+/* --- Marginalia rail --- */
+.marginalia-rail {
+  width: 220px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1023px) {
+  .marginalia-rail {
+    display: none;
+  }
+}
+
+/* --- Table of contents --- */
+.toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.toc-list li {
+  margin-bottom: 6px;
+}
+
+.toc-list a {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--color-on-surface-variant);
+  text-decoration: none;
+  transition: color 0.2s ease;
+  display: block;
+  padding: 2px 0;
+}
+
+.toc-list a:hover {
+  color: var(--color-tertiary);
+}
+
+.toc-list a.toc-active {
+  color: var(--color-tertiary);
+  font-weight: 500;
+}
+
+.toc-list .toc-h3 {
+  padding-left: 16px;
+}
+
+/* --- Subscribe modal --- */
+.subscribe-overlay {
+  transition: opacity 0.3s ease;
+}
+
+.subscribe-panel {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+/* --- Search (Pagefind) --- */
+.search-panel {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.search-result mark {
+  background: transparent;
+  color: var(--color-accent-amber);
+  font-weight: 500;
+}
+
+/* --- Section marker (// style) --- */
+.section-marker {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-accent-amber);
+  margin-bottom: 16px;
+}
+
+/* --- Notebook rule lines --- */
+.rule-line {
+  border-top: 1px solid var(--color-outline);
+}
+
+.rule-line-dashed {
+  border-top: 1px dashed var(--color-outline);
+}
+
+/* --- Reading progress bar --- */
+.reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: var(--color-tertiary);
+  z-index: 90;
+  transition: width 0.1s linear;
+}

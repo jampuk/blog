@@ -1,0 +1,62 @@
+---
+import Layout from "@layouts/Layout.astro";
+import PostCard from "@components/PostCard.astro";
+import PostCardCompact from "@components/PostCardCompact.astro";
+import { SITE } from "@data/site";
+import { getPublishedPosts, getNoteNumber } from "@lib/posts";
+
+const posts = await getPublishedPosts();
+const featured = posts.slice(0, 3);
+const featuredIds = await Promise.all(featured.map((p) => getNoteNumber(p)));
+const more = posts.slice(3, 10);
+const moreIds = await Promise.all(more.map((p) => getNoteNumber(p)));
+---
+
+<Layout title="Jampuk Read" bareTitle={true} description={SITE.description}>
+  <section class="max-w-hero-notebook mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 lg:pt-28 lg:pb-20">
+    <div class="space-y-8">
+      <div class="rule-line-dashed pt-8">
+        <p class="section-marker">// Field Notes</p>
+        <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight tracking-tight">
+          Notes on <span class="text-tertiary">secure</span> and <span class="text-accent-amber">compliant</span> AI
+        </h1>
+        <p class="text-lg text-on-surface-variant leading-relaxed mt-6 max-w-reading">
+          Short, principal-written field notes on document intelligence, LLM orchestration,
+          and agentic delivery - the same standards we ship on {SITE.parentName}.
+        </p>
+      </div>
+      <div class="flex items-center gap-4">
+        <a href="/notes/" class="font-heading font-semibold text-tertiary hover:text-on-surface transition-colors underline underline-offset-4 decoration-tertiary/40 hover:decoration-tertiary" id="hero-browse-posts">
+          Browse all notes
+        </a>
+        <span class="text-on-surface-variant">/</span>
+        <a
+          href={SITE.websiteUrl}
+          class="font-heading font-semibold text-on-surface-variant hover:text-tertiary transition-colors underline underline-offset-4 decoration-outline hover:decoration-tertiary"
+          id="hero-visit-website"
+        >
+          Main website
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="max-w-ledger mx-auto px-4 sm:px-6 lg:px-8 pb-24" aria-labelledby="latest-notes">
+    <div class="flex items-end justify-between gap-4 mb-6">
+      <h2 id="latest-notes" class="font-heading text-xl font-semibold text-on-surface">Latest notes</h2>
+      <a href="/notes/" class="text-sm font-heading font-semibold text-tertiary hover:text-on-surface transition-colors" id="home-view-all">View all &rarr;</a>
+    </div>
+    {featured.length === 0 ? (
+      <p class="text-on-surface-variant">Notes are on the way. Check back soon.</p>
+    ) : (
+      <div class="ledger-list">
+        {featured.map((post, i) => <PostCard post={post} noteId={featuredIds[i]} />)}
+      </div>
+    )}
+    {more.length > 0 && (
+      <div class="ledger-list mt-4">
+        {more.map((post, i) => <PostCardCompact post={post} noteId={moreIds[i]} />)}
+      </div>
+    )}
+  </section>
+</Layout>

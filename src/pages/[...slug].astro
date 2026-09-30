@@ -1,0 +1,228 @@
+---
+import { getCollection, render } from 'astro:content';
+import Layout from "@layouts/Layout.astro";
+import { SITE } from "@data/site";
+import { formatDate, getNoteNumber, estimateReadingTime, getAdjacentPosts } from "@lib/posts";
+import { humanizeTag } from "@lib/seo";
+import { publicImageDimensions } from "@lib/image-dimensions";
+import Colophon from "@components/Colophon.astro";
+import PostNav from "@components/PostNav.astro";
+import AuthorSnippet from "@components/AuthorSnippet.astro";
+import TagList from "@components/TagList.astro";
+import ShareButtons from "@components/ShareButtons.astro";
+import TableOfContents from "@components/TableOfContents.astro";
+import type { TocItem } from "@components/TableOfContents.astro";
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog', ({ data }) => data.draft !== true);
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content, headings } = await render(post);
+
+const noteId = await getNoteNumber(post);
+const readingTime = estimateReadingTime(post.body ?? "");
+const wordCount = (post.body ?? "")
+  .trim()
+  .split(/\s+/)
+  .filter(Boolean).length;
+const { newer, older } = await getAdjacentPosts(post);
+
+const cover = await publicImageDimensions(post.data.cover);
+const modifiedTime = (post.data.updated ?? post.data.date).toISOString();
+
+const tocItems: TocItem[] = headings
+  .filter(
+    (h) =>
+      (h.depth === 2 || h.depth === 3) &&
+      !/^(sources|references|footnotes)$/i.test(h.text.trim()),
+  )
+  .map((h) => ({
+    id: h.slug,
+    text: h.text,
+    level: h.depth as 2 | 3,
+  }));
+---
+
+<Layout
+  title={post.data.title}
+  description={post.data.description}
+  ogImage={post.data.cover ?? SITE.ogImage}
+  ogImageAlt={post.data.coverAlt ?? post.data.title}
+  ogType="article"
+  publishedTime={post.data.date.toISOString()}
+  modifiedTime={modifiedTime}
+  tags={post.data.tags}
+  section={post.data.tags?.[0] ? humanizeTag(post.data.tags[0]) : undefined}
+  wordCount={wordCount}
+  readingMinutes={readingTime}
+  imageWidth={cover?.width}
+  imageHeight={cover?.height}
+>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+    <div class="lg:grid lg:grid-cols-[220px_1fr] lg:gap-16">
+      <aside class="marginalia-rail hidden lg:block">
+        <div class="sticky top-24 space-y-6">
+          <a href="/notes/" class="note-meta hover:text-tertiary transition-colors block">&larr; All notes</a>
+
+          <div class="space-y-3">
+            <p class="note-id">{noteId}</p>
+            <p class="marginalia">{readingTime} min read</p>
+            <p class="marginalia">
+              <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
+            </p>
+          </div>
+
+          {tocItems.length > 0 && <TableOfContents items={tocItems} />}
+
+          {post.data.tags && post.data.tags.length > 0 && (
+            <div>
+              <p class="note-meta mb-3">// Filed under</p>
+              <TagList tags={post.data.tags} />
+            </div>
+          )}
+        </div>
+      </aside>
+
+      <article class="min-w-0" data-pagefind-body>
+        <header class="mb-10">
+          <p class="section-marker lg:hidden">
+            <a href="/notes/" class="hover:text-tertiary transition-colors">&larr; All notes</a>
+          </p>
+          <p class="note-id mb-3 lg:hidden">{noteId}</p>
+          <h1 class="font-display text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight tracking-tight mb-4" data-pagefind-meta="title">
+            {post.data.title}
+          </h1>
+          <div class="note-meta flex items-center gap-3 mb-6">
+            <time datetime={post.data.date.toISOString()} data-pagefind-meta="date">{formatDate(post.data.date)}</time>
+            <span aria-hidden="true">-</span>
+            <AuthorSnippet variant="byline" />
+          </div>
+          <p class="text-on-surface-variant text-lg leading-relaxed border-l-2 border-tertiary/50 pl-4 mb-6">
+            {post.data.description}
+          </p>
+          <div class="lg:hidden">
+            <TagList tags={post.data.tags ?? []} />
+          </div>
+        </header>
+
+        <div class="prose-note drop-cap">
+          <Content />
+        </div>
+
+        <ShareButtons title={post.data.title} />
+
+        {post.data.tags && post.data.tags.length > 0 && (
+          <div class="mt-12 pt-8 rule-line lg:hidden">
+            <TagList tags={post.data.tags} />
+          </div>
+        )}
+
+        <AuthorSnippet variant="card" />
+        <PostNav newer={newer} older={older} />
+        <Colophon />
+      </article>
+    </div>
+  </div>
+
+  <script>
+    const PLAIN_LANGS = new Set(["plaintext", "plain", "text", "txt", "ansi"]);
+
+    function isPlainBlock(pre: HTMLPreElement) {
+      const lang = (pre.dataset.language || "").toLowerCase();
+      return !lang || PLAIN_LANGS.has(lang);
+    }
+
+    function legacyCopy(text: string) {
+      const helper = document.createElement("textarea");
+      helper.value = text;
+      helper.setAttribute("readonly", "");
+      helper.style.position = "fixed";
+      helper.style.opacity = "0";
+      document.body.appendChild(helper);
+      helper.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(helper);
+      return ok;
+    }
+
+    function copyToClipboard(pre: HTMLPreElement): Promise<boolean> {
+      const code = (pre.textContent || "").replace(/\n+$/, "");
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(code).then(
+          function onOk() {
+            return true;
+          },
+          function onErr() {
+            return legacyCopy(code);
+          },
+        );
+      }
+      return Promise.resolve(legacyCopy(code));
+    }
+
+    function buildHeader(lang: string, pre: HTMLPreElement) {
+      const header = document.createElement("div");
+      header.className = "code-terminal-header";
+      header.setAttribute("data-pagefind-ignore", "");
+
+      const label = document.createElement("span");
+      label.className = "code-terminal-lang";
+      label.textContent = "Terminal // " + lang;
+      header.appendChild(label);
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "code-terminal-copy";
+      button.setAttribute("aria-label", "Copy code to clipboard");
+      button.textContent = "Copy";
+      button.addEventListener("click", function onClick() {
+        copyToClipboard(pre).then(function onCopied(copied) {
+          if (!copied) return;
+          button.textContent = "Copied";
+          button.classList.add("is-copied");
+          window.setTimeout(function reset() {
+            button.textContent = "Copy";
+            button.classList.remove("is-copied");
+          }, 2000);
+          document.dispatchEvent(
+            new CustomEvent("toast:show", {
+              detail: "Snippet copied to clipboard",
+            }),
+          );
+        });
+      });
+      header.appendChild(button);
+
+      return header;
+    }
+
+    function enhance(pre: HTMLPreElement) {
+      if (isPlainBlock(pre)) return;
+      if (pre.parentElement && pre.parentElement.classList.contains("code-terminal")) return;
+
+      const lang = (pre.dataset.language || "").toLowerCase();
+      const wrapper = document.createElement("div");
+      wrapper.className = "code-terminal";
+      if (pre.parentNode) pre.parentNode.insertBefore(wrapper, pre);
+      wrapper.appendChild(buildHeader(lang, pre));
+      wrapper.appendChild(pre);
+    }
+
+    function initCodeTerminals() {
+      document.querySelectorAll(".prose-note pre").forEach(function each(pre) {
+        enhance(pre as HTMLPreElement);
+      });
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initCodeTerminals);
+    } else {
+      initCodeTerminals();
+    }
+  </script>
+</Layout>

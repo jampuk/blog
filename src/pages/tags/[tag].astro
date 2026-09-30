@@ -1,0 +1,37 @@
+---
+import { getCollection } from "astro:content";
+import Layout from "@layouts/Layout.astro";
+import PostCard from "@components/PostCard.astro";
+import { getAllTags, getPostsByTag, getNoteNumber } from "@lib/posts";
+import { humanizeTag } from "@lib/seo";
+
+export async function getStaticPaths() {
+  const tags = await getAllTags();
+  return tags.map(({ tag }) => ({
+    params: { tag },
+    props: { tag },
+  }));
+}
+
+const { tag } = Astro.props;
+const label = humanizeTag(tag);
+const posts = await getPostsByTag(tag);
+const noteIds = await Promise.all(posts.map((p) => getNoteNumber(p)));
+---
+
+<Layout title={label} parentTitle="Tags" description={`Field notes tagged with "${label}".`}>
+  <section class="max-w-ledger mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
+    <p class="section-marker">// Tag</p>
+    <h1 class="font-display text-4xl sm:text-5xl font-bold mb-4">{label}</h1>
+    <p class="text-on-surface-variant max-w-reading leading-relaxed mb-10">
+      {posts.length} note{posts.length !== 1 ? "s" : ""} filed under this topic.
+    </p>
+    {posts.length === 0 ? (
+      <p class="text-on-surface-variant">No notes with this tag yet.</p>
+    ) : (
+      <div class="ledger-list">
+        {posts.map((post, i) => <PostCard post={post} noteId={noteIds[i]} />)}
+      </div>
+    )}
+  </section>
+</Layout>

@@ -1,0 +1,51 @@
+---
+import type { BlogPost } from "@lib/posts";
+import { formatDate, estimateReadingTime } from "@lib/posts";
+
+interface Props {
+  post: BlogPost;
+  noteId?: string;
+}
+
+const { post, noteId } = Astro.props;
+const readingTime = estimateReadingTime(post.body ?? "");
+---
+
+<article class="ledger-row py-6" aria-labelledby={`post-${post.id}`}>
+  <div class="flex items-baseline gap-4">
+    {noteId && (
+      <span class="note-id flex-shrink-0 w-14">{noteId}</span>
+    )}
+    <div class="flex-1 min-w-0">
+      <div class="note-meta flex items-center gap-3 mb-2">
+        <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
+        <span aria-hidden="true">-</span>
+        <span>{readingTime} min read</span>
+      </div>
+      <h2 id={`post-${post.id}`} class="font-heading text-xl font-semibold leading-snug mb-2">
+        <a href={`/${post.id}/`} class="text-on-surface hover:text-tertiary transition-colors">
+          {post.data.title}
+        </a>
+      </h2>
+      <p class="text-sm text-on-surface-variant leading-relaxed mb-3">{post.data.description}</p>
+      <div class="flex items-center justify-between">
+        <a
+          href={`/${post.id}/`}
+          class="text-sm font-heading font-semibold text-tertiary hover:text-on-surface transition-colors"
+          aria-label={`Read ${post.data.title}`}
+        >
+          Read note &rarr;
+        </a>
+        {post.data.tags && post.data.tags.length > 0 && (
+          <div class="flex flex-wrap gap-1.5">
+            {post.data.tags.slice(0, 3).map((tag) => (
+              <a href={`/tags/${tag}/`} class="tag-pill text-[10px] px-2 py-0.5">
+                {tag}
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</article>

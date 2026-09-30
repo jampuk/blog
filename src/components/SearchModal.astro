@@ -1,0 +1,114 @@
+<div
+  id="search-modal"
+  class="fixed inset-0 z-[100] flex items-start justify-center bg-nocturne/80 backdrop-blur-md hidden opacity-0 search-overlay"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="search-modal-title"
+>
+  <div
+    id="search-modal-panel"
+    class="search-panel relative w-full max-w-2xl bg-surface-container border border-outline rounded-xl shadow-2xl flex flex-col overflow-hidden mt-16 mb-4 transform scale-95"
+    style="max-height: min(80vh, 40rem)"
+  >
+    <div class="flex items-center justify-between px-6 py-4 bg-nocturne border-b border-outline flex-shrink-0">
+      <div>
+        <h3 id="search-modal-title" class="text-lg font-bold font-heading text-on-surface">
+          Search
+        </h3>
+        <p class="text-xs text-accent-amber font-mono tracking-wider">
+          // Search the notes
+        </p>
+      </div>
+      <button
+        type="button"
+        id="btn-close-search-modal"
+        class="text-on-surface-variant hover:text-on-surface hover:bg-white/10 p-2 rounded-lg transition-colors focus:outline-none"
+        aria-label="Close search modal"
+      >
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="p-6 pt-5 pb-4 space-y-4 min-h-0 flex flex-col flex-1">
+      <input
+        type="search"
+        id="search-input-modal"
+        placeholder="Search notes..."
+        aria-label="Search notes"
+        autocomplete="off"
+        class="w-full flex-shrink-0 bg-primary border border-outline rounded-md px-4 py-3 font-heading text-sm text-on-surface placeholder:text-on-surface-variant hover:border-outline focus:outline-none focus:border-tertiary transition-colors duration-200"
+      />
+      <div id="search-results-modal" class="search-result flex-1 min-h-0 overflow-y-auto"></div>
+      <p class="note-meta flex-shrink-0">Enter opens the first result &middot; ESC closes</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { createSearchUI, loadSearch } from "@lib/search";
+
+  const modal = document.getElementById("search-modal");
+  const panel = document.getElementById("search-modal-panel");
+  const input = document.getElementById("search-input-modal") as HTMLInputElement | null;
+  const output = document.getElementById("search-results-modal");
+  if (modal && panel && input && output) {
+    const isOpen = () => !modal.classList.contains("hidden");
+
+    const openModal = (e?: Event) => {
+      e?.preventDefault();
+      if (isOpen()) return;
+      loadSearch();
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+      modal.offsetHeight;
+      modal.classList.remove("opacity-0");
+      panel.classList.remove("scale-95");
+      panel.classList.add("scale-100");
+      document.body.style.overflow = "hidden";
+      window.setTimeout(() => input.focus(), 50);
+    };
+
+    const closeModal = () => {
+      if (!isOpen()) return;
+      modal.classList.add("opacity-0");
+      panel.classList.remove("scale-100");
+      panel.classList.add("scale-95");
+      document.body.style.overflow = "";
+      window.setTimeout(() => {
+        modal.classList.remove("flex");
+        modal.classList.add("hidden");
+      }, 300);
+    };
+
+    document.getElementById("btn-close-search-modal")?.addEventListener("click", closeModal);
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if ((e.key === "k" || e.key === "K") && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        if (isOpen()) closeModal();
+        else openModal();
+      } else if (
+        e.key === "/" &&
+        !isOpen() &&
+        !["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement)?.tagName || "") &&
+        (e.target as HTMLElement)?.isContentEditable !== true
+      ) {
+        e.preventDefault();
+        openModal();
+      } else if (e.key === "Escape") {
+        closeModal();
+      }
+    });
+
+    document.querySelectorAll("[data-search-trigger]").forEach((el) => {
+      el.addEventListener("click", openModal);
+    });
+
+    createSearchUI(input, output);
+  }
+</script>

@@ -1,0 +1,49 @@
+---
+import { Image } from 'astro:assets';
+import logoPrimary from '@assets/images/logo-jampuk.png';
+import logoLight from '@assets/images/logo-jampuk-alt.png';
+
+interface Props {
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  showText?: boolean;
+  variant?: 'color' | 'light' | 'dark';
+  className?: string;
+}
+
+const {
+  size = 'sm',
+  showText = true,
+  variant = 'color',
+  className = ''
+} = Astro.props;
+
+// Map sizes to image height classes (the image scales proportionally)
+const sizeMap = {
+  sm: { height: 'h-8' },
+  md: { height: 'h-12' },
+  lg: { height: 'h-16' },
+  xl: { height: 'h-24' }
+};
+
+const currentSize = sizeMap[size] || sizeMap.sm;
+
+// variant="color" | "dark" -> navy primary for light surfaces,
+// variant="light" -> white monochrome for dark surfaces (header, footer, heroes).
+const logoSrc = variant === 'light' ? logoLight : logoPrimary;
+const logoAlt =
+  variant === 'light'
+    ? 'Jampuk Intelligence logo - white scops-owl J monogram with white Jampuk wordmark and white Intelligence subtext for dark backgrounds'
+    : 'Jampuk Intelligence primary logo - navy scops-owl J monogram with navy Jampuk wordmark and amber Intelligence subtext';
+---
+
+{showText && (
+  <div class={`inline-flex items-center gap-3 ${className}`}>
+    <Image
+      src={logoSrc}
+      alt={logoAlt}
+      class={`${currentSize.height} w-auto object-contain`}
+      widths={[200, 400]}
+      sizes="(max-width: 768px) 200px, 400px"
+    />
+  </div>
+)}

@@ -1,0 +1,37 @@
+---
+import Layout from "@layouts/Layout.astro";
+import { getAllTags } from "@lib/posts";
+import { humanizeTag } from "@lib/seo";
+
+const tags = await getAllTags();
+---
+
+<Layout title="Tags" description="Browse field notes by topic tag.">
+  <section class="max-w-ledger mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
+    <p class="section-marker">// Index</p>
+    <h1 class="font-display text-4xl sm:text-5xl font-bold mb-4">Tags</h1>
+    <p class="text-on-surface-variant max-w-reading leading-relaxed mb-10">
+      Topics across the notebook. Click a tag to see all related notes.
+    </p>
+    {tags.length === 0 ? (
+      <p class="text-on-surface-variant">No tags yet.</p>
+    ) : (
+      <div class="ledger-list">
+        {tags.map(({ tag, count }) => (
+          <a
+            href={`/tags/${tag}/`}
+            class="ledger-row flex items-center justify-between py-4 group"
+            id={`tag-index-${tag}`}
+          >
+            <span class="font-heading text-lg font-semibold text-on-surface group-hover:text-tertiary transition-colors">
+              {humanizeTag(tag)}
+            </span>
+            <span class="note-meta group-hover:text-tertiary transition-colors">
+              {count} note{count !== 1 ? "s" : ""}
+            </span>
+          </a>
+        ))}
+      </div>
+    )}
+  </section>
+</Layout>

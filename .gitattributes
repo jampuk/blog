@@ -1,0 +1,3 @@
+* text=auto eol=lf
+public/admin/config.yml text eol=lf
+src/content/blog/*.md text eol=lf diff=markdown

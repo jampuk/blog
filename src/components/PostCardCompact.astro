@@ -1,0 +1,29 @@
+---
+import type { BlogPost } from "@lib/posts";
+import { formatDate } from "@lib/posts";
+
+interface Props {
+  post: BlogPost;
+  noteId?: string;
+}
+
+const { post, noteId } = Astro.props;
+---
+
+<article class="ledger-row py-4" aria-labelledby={`post-${post.id}`}>
+  <div class="flex items-baseline gap-4">
+    {noteId && (
+      <span class="note-id flex-shrink-0 w-14">{noteId}</span>
+    )}
+    <div class="flex-1 min-w-0 flex items-baseline gap-3">
+      <time datetime={post.data.date.toISOString()} class="note-meta whitespace-nowrap">
+        {formatDate(post.data.date)}
+      </time>
+      <h3 id={`post-${post.id}`} class="font-heading text-base font-semibold leading-snug truncate">
+        <a href={`/${post.id}/`} class="text-on-surface hover:text-tertiary transition-colors">
+          {post.data.title}
+        </a>
+      </h3>
+    </div>
+  </div>
+</article>

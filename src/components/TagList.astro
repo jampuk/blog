@@ -1,0 +1,23 @@
+---
+interface Props {
+  tags: string[];
+  class?: string;
+}
+
+const { tags, className = "" } = Astro.props;
+---
+
+{tags.length > 0 && (
+  <div class={`flex flex-wrap gap-2 ${className}`} data-pagefind-ignore>
+    {tags.map((tag) => (
+      <a
+        href={`/tags/${tag}/`}
+        class="tag-pill"
+        rel="tag"
+        id={`tag-${tag}`}
+      >
+        {tag}
+      </a>
+    ))}
+  </div>
+)}

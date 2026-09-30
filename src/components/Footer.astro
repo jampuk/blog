@@ -1,0 +1,115 @@
+---
+import Logo from "@components/Logo.astro";
+import { CONSENT_EVENT } from "@lib/consent";
+import { SITE } from "@data/site";
+
+const WEBSITE_URL = SITE.websiteUrl;
+const gaId = import.meta.env.PUBLIC_GA_MEASUREMENT_ID;
+---
+
+<footer class="bg-primary text-on-surface border-t border-outline font-body mt-auto">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-x-12 gap-y-12">
+      <div class="lg:col-span-5 space-y-5">
+        <a href="/" class="inline-block" id="footer-logo-link">
+          <Logo size="sm" showText={true} variant="light" />
+        </a>
+        <p class="text-on-surface/70 max-w-md leading-relaxed text-sm">
+          Principal-led field notes on secure, compliant, production-grade AI
+          systems. Published from {SITE.name} by {SITE.author.name}.
+        </p>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4 pt-1">
+          <a
+            href="#"
+            data-subscribe-trigger="true"
+            class="subscribe-cta"
+            id="footer-subscribe-button"
+          >
+            Subscribe
+          </a>
+        </div>
+      </div>
+      <div class="lg:col-span-7 space-y-8">
+        <div class="grid grid-cols-2 gap-x-8">
+          <div>
+            <h3 class="text-sm font-semibold text-accent-amber uppercase tracking-wider mb-4">Read</h3>
+            <ul class="space-y-2.5 text-sm">
+              <li><a href="/notes/" class="footer-link" id="footer-read-posts">All notes</a></li>
+              <li><a href="/tags/" class="footer-link" id="footer-read-tags">Tags</a></li>
+              <li><a href="/rss.xml" class="footer-link" id="footer-read-rss">RSS feed</a></li>
+            </ul>
+          </div>
+          <div>
+            <h3 class="text-sm font-semibold text-accent-amber uppercase tracking-wider mb-4">Jampuk</h3>
+            <ul class="space-y-2.5 text-sm">
+              <li><a href={WEBSITE_URL} class="footer-link" id="footer-site-home">Jampuk.com</a></li>
+              <li><a href={`${WEBSITE_URL}/open-source`} class="footer-link" id="footer-site-oss">Open Source</a></li>
+              <li><a href={SITE.author.profileUrl} class="footer-link" id="footer-site-principal">Principal Profile</a></li>
+              <li>
+                <a
+                  href="https://www.linkedin.com/company/jampuk"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="footer-link inline-flex items-center gap-1.5"
+                  aria-label="Follow on LinkedIn"
+                >
+                  <span>Follow on LinkedIn</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="border-t border-outline">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="flex flex-col md:flex-row justify-between items-center text-xs text-on-surface/50 gap-4">
+        <div>&copy; {new Date().getFullYear()} {SITE.company.name}. All rights reserved.</div>
+        <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+          <a href={`${WEBSITE_URL}/terms`} class="hover:text-accent-amber transition-colors duration-200">Terms & Conditions</a>
+          <span class="text-on-surface/30">|</span>
+          <a href={`${WEBSITE_URL}/privacy`} class="hover:text-accent-amber transition-colors duration-200">Privacy Policy</a>
+          {
+              gaId && (
+                  <>
+                      <span class="text-on-surface/30">|</span>
+                      <button
+                          type="button"
+                          data-consent-trigger="true"
+                          class="hover:text-accent-amber transition-colors duration-200 cursor-pointer"
+                          id="footer-cookie-settings"
+                      >
+                          Cookie settings
+                      </button>
+                  </>
+              )
+          }
+          <span class="text-on-surface/30">|</span>
+          <button
+            type="button"
+            onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
+            class="inline-flex items-center gap-1 hover:text-accent-amber transition-colors duration-200 cursor-pointer"
+            aria-label="Back to top"
+          >
+            <span>Back to Top</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+{
+    gaId && (
+        <script is:inline define:vars={{ CONSENT_EVENT }}>
+            document
+                .querySelectorAll("[data-consent-trigger]")
+                .forEach(function (el) {
+                    el.addEventListener("click", function () {
+                        window.dispatchEvent(new CustomEvent(CONSENT_EVENT));
+                    });
+                });
+        </script>
+    )
+}

@@ -1,0 +1,16 @@
+---
+import Layout from "@layouts/Layout.astro";
+---
+
+<Layout title="Page not found" description="This note does not exist." noindex={true}>
+  <section class="max-w-reading mx-auto px-4 sm:px-6 py-24 text-center">
+    <p class="section-marker">404</p>
+    <h1 class="font-display text-4xl sm:text-5xl font-bold mt-3 mb-4">Note not found</h1>
+    <p class="text-on-surface-variant mb-8">The page moved or was never published.</p>
+    <div class="flex justify-center items-center gap-4">
+      <a href="/notes/" class="font-heading font-semibold text-tertiary hover:text-on-surface transition-colors underline underline-offset-4 decoration-tertiary/40 hover:decoration-tertiary" id="error-back-blog">Back to notes</a>
+      <span class="text-on-surface-variant">/</span>
+      <a href="/" class="font-heading font-semibold text-on-surface-variant hover:text-tertiary transition-colors underline underline-offset-4 decoration-outline hover:decoration-tertiary" id="error-back-home">Home</a>
+    </div>
+  </section>
+</Layout>
