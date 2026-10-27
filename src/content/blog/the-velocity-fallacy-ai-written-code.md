@@ -1,8 +1,9 @@
 ---
-title: "The velocity fallacy: what repository data says about AI-written code"
-description: "Six years of repository analytics, a matched control study, and a benchmark against senior engineers all point the same way: AI assistants raise authoring speed, then leave duplication, churn, and complexity behind. Here is the evidence, and the remediation path."
+title: 'The velocity fallacy: what repository data says about AI-written code'
+description: 'Six years of repository analytics, a matched control study, and a benchmark against senior engineers all point the same way: AI assistants raise authoring speed, then leave duplication, churn, and complexity behind. Here is the evidence, and the remediation path.'
 date: 2026-10-05
 draft: false
+cover: /images/uploads/the-velocity-fallacy.png
 tags:
   - field-notes
   - ai-engineering
