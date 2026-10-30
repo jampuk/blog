@@ -6,7 +6,7 @@
 
 Principal-written notes on secure, compliant, production-grade AI systems.
 
-[Read the notebook](https://read.jampuk.com) · [Browse notes](https://read.jampuk.com/notes/) · [Open CMS](https://read.jampuk.com/admin/) · [Jampuk](https://www.jampuk.com)
+[Read the field notes](https://read.jampuk.com) · [Jampuk.com](https://www.jampuk.com)
 
 ![Astro 7](https://img.shields.io/badge/Astro-7-BC52EE?style=flat-square&logo=astro&logoColor=white)
 ![Tailwind CSS 4](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
