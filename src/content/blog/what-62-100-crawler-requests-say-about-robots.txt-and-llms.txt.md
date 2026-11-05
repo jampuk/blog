@@ -5,6 +5,14 @@ date: 2026-11-02
 draft: false
 cover: /images/uploads/what-62100-crawler-requests-say-about-robots-txt-and-llms-txt.png
 coverAlt: Illustration comparing robots.txt access control gate and llms.txt curated map for AI crawlers and coding agents.
+tags:
+  - field-notes
+  - ai-engineering
+  - web-standards
+  - llms-txt
+  - robots-txt
+  - rag
+  - ai-compliance
 ---
 
 The rapid transition of web content consumption from human-driven browser rendering to automated Large Language Model (LLM) ingestion and Retrieval-Augmented Generation (RAG) has exposed fundamental structural limitations in traditional web standards.[^1] Classical web protocols were engineered under the foundational assumption that indexing agents parse Document Object Model (DOM) trees to build inverted keyword indices for later retrieval.[^1] Neural context windows, by contrast, operate under strict token-budget constraints and computational billing models where superfluous characters incur direct financial and latency penalties.[^2] This architectural shift has ignited debate regarding the necessity of an independent semantic curation file, llms.txt, when web crawlers already evaluate path-level access permissions via robots.txt.[^5]
