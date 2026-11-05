@@ -44,4 +44,5 @@ collections:
       - { name: draft, label: Draft, widget: boolean, default: false, hint: "Drafts are hidden from listings until published." }
       - { name: cover, label: Cover image, widget: image, required: false }
       - { name: coverAlt, label: Cover image alt text, widget: string, required: false, hint: "Describes the cover image for social previews. Falls back to the note title." }
+      - { name: tags, label: Tags, widget: list, required: false, hint: "Lowercase, hyphenated, e.g. field-notes. Shown on the note, in the feed, and on the /tags/ pages." }
       - { name: body, label: Body, widget: markdown }
