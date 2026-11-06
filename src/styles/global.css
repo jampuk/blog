@@ -583,6 +583,14 @@
   text-overflow: ellipsis;
 }
 
+.code-terminal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.code-terminal-btn,
 .code-terminal-copy {
   font-family: var(--font-mono);
   font-size: 10px;
@@ -596,19 +604,33 @@
   padding: 4px 10px;
   cursor: pointer;
   flex-shrink: 0;
-  transition: color 0.2s ease, border-color 0.2s ease;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
+.code-terminal-btn:hover,
 .code-terminal-copy:hover {
   color: var(--color-accent-amber);
   border-color: var(--color-accent-amber);
 }
 
+.code-terminal-btn.is-copied,
 .code-terminal-copy.is-copied {
   color: var(--color-tertiary);
   border-color: var(--color-tertiary);
 }
 
+.code-terminal-btn.code-terminal-diagram {
+  color: var(--color-tertiary);
+  border-color: rgba(14, 165, 233, 0.4);
+}
+
+.code-terminal-btn.code-terminal-diagram:hover {
+  color: #fff;
+  background: rgba(14, 165, 233, 0.15);
+  border-color: var(--color-tertiary);
+}
+
+.code-terminal-btn:focus-visible,
 .code-terminal-copy:focus-visible {
   outline: 2px solid var(--color-tertiary);
   outline-offset: 2px;
@@ -642,130 +664,171 @@
   background: var(--color-tertiary);
 }
 
-/* --- Diagram terminal blocks (Mermaid / C4 — mirrors .code-terminal style) --- */
-.diagram-terminal {
-  margin: 1.5em 0;
-  background: var(--color-primary);
-  border: 1px solid var(--color-outline);
-  border-radius: 8px;
-  overflow: hidden;
+/* ── Fullscreen Diagram Modal ────────────────────────────────────────────── */
+.diagram-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(11, 19, 43, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
 }
 
-.diagram-terminal-header {
+.diagram-modal.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.diagram-modal-dialog {
+  display: flex;
+  flex-direction: column;
+  width: 96vw;
+  height: 94vh;
+  max-width: 1700px;
+  background: var(--color-primary);
+  border: 1px solid var(--color-outline);
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75);
+  overflow: hidden;
+  transform: scale(0.97);
+  transition: transform 0.25s ease;
+}
+
+.diagram-modal.is-open .diagram-modal-dialog {
+  transform: scale(1);
+}
+
+.diagram-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 8px 12px 8px 16px;
+  padding: 10px 16px;
   background: var(--color-primary);
   border-bottom: 1px solid var(--color-outline);
+  flex-shrink: 0;
+  user-select: none;
 }
 
-.diagram-terminal-label {
+.diagram-modal-title {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-on-surface-variant);
+  color: var(--color-on-surface);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.diagram-terminal-btn {
+.diagram-modal-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.diagram-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 8px;
+  min-width: 24px;
+  height: 24px;
   font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--color-on-surface-variant);
   background: transparent;
   border: 1px solid var(--color-outline);
-  border-radius: 6px;
-  padding: 4px 10px;
+  border-radius: 4px;
   cursor: pointer;
-  flex-shrink: 0;
-  transition: color 0.2s ease, border-color 0.2s ease;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
-.diagram-terminal-btn:hover {
+.diagram-icon-btn:hover {
   color: var(--color-accent-amber);
   border-color: var(--color-accent-amber);
+  background: rgba(245, 158, 11, 0.08);
 }
 
-.diagram-terminal-btn.is-rendered {
-  color: var(--color-tertiary);
-  border-color: var(--color-tertiary);
-}
-
-.diagram-terminal-btn:focus-visible {
+.diagram-icon-btn:focus-visible {
   outline: 2px solid var(--color-tertiary);
-  outline-offset: 2px;
+  outline-offset: 1px;
 }
 
-/* The <pre> inside the terminal while in "code" view */
-.diagram-terminal pre {
-  margin: 0;
-  border: none;
-  border-radius: 0;
-  max-height: calc(10 * 22.4px + 32px);
-  overflow: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-surface-container-high) transparent;
-}
-
-.diagram-terminal pre::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.diagram-terminal pre::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.diagram-terminal pre::-webkit-scrollbar-thumb {
-  background: var(--color-surface-container-high);
-  border-radius: 9999px;
-}
-
-.diagram-terminal pre::-webkit-scrollbar-thumb:hover {
-  background: var(--color-tertiary);
-}
-
-/* Rendered SVG output pane */
-.diagram-terminal-output {
-  display: none;
-  padding: 24px 20px;
-  overflow-x: auto;
-  background: var(--color-primary);
-  text-align: center;
-}
-
-.diagram-terminal-output.is-visible {
-  display: block;
-}
-
-/* Mermaid SVG tweaks: respect the dark palette */
-.diagram-terminal-output svg {
-  max-width: 100%;
-  height: auto;
-  border-radius: 4px;
-}
-
-/* Loading spinner shown while Mermaid initialises */
-.diagram-terminal-loading {
-  display: none;
+.diagram-modal-scale-badge {
   font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  color: var(--color-on-surface-variant);
-  padding: 24px 20px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-accent-amber);
+  padding: 2px 6px;
+  min-width: 44px;
   text-align: center;
 }
 
-.diagram-terminal-loading.is-visible {
+.diagram-modal-viewport {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  background: radial-gradient(circle at center, #131c38 0%, #0b132b 100%);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.diagram-modal-viewport.is-panning {
+  cursor: grabbing;
+}
+
+.diagram-modal-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.diagram-modal-content svg {
   display: block;
+  max-width: none !important;
+  max-height: none !important;
+  filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.4));
+}
+
+.diagram-modal-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--color-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.diagram-modal-hints {
+  position: absolute;
+  bottom: 12px;
+  left: 16px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-on-surface-variant);
+  background: rgba(11, 19, 43, 0.7);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(51, 65, 85, 0.4);
+  pointer-events: none;
 }
 
 .prose-note blockquote {
