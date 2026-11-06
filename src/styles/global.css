@@ -642,6 +642,132 @@
   background: var(--color-tertiary);
 }
 
+/* --- Diagram terminal blocks (Mermaid / C4 — mirrors .code-terminal style) --- */
+.diagram-terminal {
+  margin: 1.5em 0;
+  background: var(--color-primary);
+  border: 1px solid var(--color-outline);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.diagram-terminal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px 8px 16px;
+  background: var(--color-primary);
+  border-bottom: 1px solid var(--color-outline);
+}
+
+.diagram-terminal-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.diagram-terminal-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+  background: transparent;
+  border: 1px solid var(--color-outline);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.diagram-terminal-btn:hover {
+  color: var(--color-accent-amber);
+  border-color: var(--color-accent-amber);
+}
+
+.diagram-terminal-btn.is-rendered {
+  color: var(--color-tertiary);
+  border-color: var(--color-tertiary);
+}
+
+.diagram-terminal-btn:focus-visible {
+  outline: 2px solid var(--color-tertiary);
+  outline-offset: 2px;
+}
+
+/* The <pre> inside the terminal while in "code" view */
+.diagram-terminal pre {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  max-height: calc(10 * 22.4px + 32px);
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-surface-container-high) transparent;
+}
+
+.diagram-terminal pre::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.diagram-terminal pre::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.diagram-terminal pre::-webkit-scrollbar-thumb {
+  background: var(--color-surface-container-high);
+  border-radius: 9999px;
+}
+
+.diagram-terminal pre::-webkit-scrollbar-thumb:hover {
+  background: var(--color-tertiary);
+}
+
+/* Rendered SVG output pane */
+.diagram-terminal-output {
+  display: none;
+  padding: 24px 20px;
+  overflow-x: auto;
+  background: var(--color-primary);
+  text-align: center;
+}
+
+.diagram-terminal-output.is-visible {
+  display: block;
+}
+
+/* Mermaid SVG tweaks: respect the dark palette */
+.diagram-terminal-output svg {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+/* Loading spinner shown while Mermaid initialises */
+.diagram-terminal-loading {
+  display: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--color-on-surface-variant);
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.diagram-terminal-loading.is-visible {
+  display: block;
+}
+
 .prose-note blockquote {
   border-left: 3px solid var(--color-tertiary);
   padding: 4px 0 4px 20px;

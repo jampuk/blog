@@ -24,6 +24,14 @@ export async function getStaticPaths() {
 const { post } = Astro.props;
 const { Content, headings } = await render(post);
 
+// Detect whether the post body contains any diagram fences so we can
+// conditionally inject the Mermaid initialisation script.
+const bodySource = post.body ?? "";
+const HAS_DIAGRAMS =
+  /^```(mermaid|c4)\b/m.test(bodySource) ||
+  /^```(text|txt|plain|plaintext)?\r?\n[\s\S]*?^C4(Context|Container|Component|Dynamic|Deployment)\b/m.test(bodySource) ||
+  /^```\r?\n[\s\S]*?^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram)\b/m.test(bodySource);
+
 const noteId = await getNoteNumber(post);
 const readingTime = estimateReadingTime(post.body ?? "");
 const wordCount = (post.body ?? "")
@@ -110,7 +118,7 @@ const tocItems: TocItem[] = headings
           </div>
         </header>
 
-        <div class="prose-note drop-cap">
+        <div class="prose-note drop-cap" data-has-diagrams={HAS_DIAGRAMS ? "true" : undefined}>
           <Content />
         </div>
 
@@ -131,10 +139,19 @@ const tocItems: TocItem[] = headings
 
   <script>
     const PLAIN_LANGS = new Set(["plaintext", "plain", "text", "txt", "ansi"]);
+    const DIAGRAM_KEYWORDS = /^(C4(Context|Container|Component|Dynamic|Deployment)|graph|flowchart|sequenceDiagram|classDiagram|stateDiagram(-v2)?|erDiagram|journey|gantt|pie|gitGraph|mindmap|timeline|quadrantChart|sankey-beta|xychart-beta|packet-beta|kanban|architecture-beta)\b/m;
 
     function isPlainBlock(pre: HTMLPreElement) {
       const lang = (pre.dataset.language || "").toLowerCase();
       return !lang || PLAIN_LANGS.has(lang);
+    }
+
+    function isDiagramBlock(pre: HTMLPreElement) {
+      if (pre.dataset.diagram) return true;
+      const lang = (pre.dataset.language || "").toLowerCase();
+      if (lang === "mermaid" || lang === "c4") return true;
+      const text = (pre.textContent || "").trim();
+      return DIAGRAM_KEYWORDS.test(text);
     }
 
     function legacyCopy(text: string) {
@@ -202,6 +219,7 @@ const tocItems: TocItem[] = headings
     }
 
     function enhance(pre: HTMLPreElement) {
+      if (isDiagramBlock(pre)) return; // handled separately
       if (isPlainBlock(pre)) return;
       if (pre.parentElement && pre.parentElement.classList.contains("code-terminal")) return;
 
@@ -225,4 +243,181 @@ const tocItems: TocItem[] = headings
       initCodeTerminals();
     }
   </script>
+
+  {HAS_DIAGRAMS && (
+  <script is:inline>
+    // ─── Mermaid diagram rendering ────────────────────────────────────────────
+    // Mermaid.js (+ C4 diagrams extension) is loaded lazily on the first
+    // "Render Diagram" click.  Subsequent clicks on any diagram reuse the
+    // already-loaded module.
+    // is:inline keeps this out of Astro's bundle so the conditional works.
+
+    (function () {
+      var DIAGRAM_KEYWORDS = /^(C4(Context|Container|Component|Dynamic|Deployment)|graph|flowchart|sequenceDiagram|classDiagram|stateDiagram(-v2)?|erDiagram|journey|gantt|pie|gitGraph|mindmap|timeline|quadrantChart|sankey-beta|xychart-beta|packet-beta|kanban|architecture-beta)\b/m;
+
+      function isDiagram(pre) {
+        if (pre.dataset.diagram) return true;
+        var lang = (pre.dataset.language || "").toLowerCase();
+        if (lang === "mermaid" || lang === "c4") return true;
+        var text = (pre.textContent || "").trim();
+        return DIAGRAM_KEYWORDS.test(text);
+      }
+
+      var mermaidReady = null;
+
+      function loadMermaid() {
+        if (mermaidReady) return mermaidReady;
+        mermaidReady = new Promise(function (resolve, reject) {
+          // Mermaid ESM — includes C4 support natively since v10
+          var script = document.createElement("script");
+          script.type = "module";
+          script.textContent = [
+            "import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';",
+            "mermaid.initialize({",
+            "  startOnLoad: false,",
+            "  theme: 'dark',",
+            "  themeVariables: {",
+            "    background: '#0B132B',",
+            "    primaryColor: '#1C2541',",
+            "    primaryTextColor: '#E2E8F0',",
+            "    primaryBorderColor: '#334155',",
+            "    lineColor: '#94A3B8',",
+            "    secondaryColor: '#1E293B',",
+            "    tertiaryColor: '#0EA5E9',",
+            "    edgeLabelBackground: '#1C2541',",
+            "    clusterBkg: '#1C2541',",
+            "    titleColor: '#F59E0B',",
+            "    attributeBackgroundColorEven: '#1C2541',",
+            "    attributeBackgroundColorOdd: '#0B132B',",
+            "  },",
+            "  fontFamily: '\"Fira Code\", \"Space Grotesk\", monospace',",
+            "  c4: { diagramMarginY: 30 },",
+            "});",
+            "window.__mermaid = mermaid;",
+            "document.dispatchEvent(new Event('mermaid:ready'));",
+          ].join("\n");
+          document.head.appendChild(script);
+
+          document.addEventListener("mermaid:ready", function () { resolve(); }, { once: true });
+          window.setTimeout(function () {
+            reject(new Error("Mermaid load timeout"));
+          }, 15000);
+        });
+        return mermaidReady;
+      }
+
+      var diagramSeq = 0;
+
+      function buildDiagramTerminal(pre) {
+        var rawCode = (pre.dataset.diagramCode || pre.textContent || "").trim();
+        var isC4 = pre.dataset.diagram === "c4" ||
+                   pre.dataset.language === "c4" ||
+                   /^C4(Context|Container|Component|Dynamic|Deployment)\b/m.test(rawCode);
+        var diagramType = isC4 ? "C4" : "MERMAID";
+
+        var wrapper = document.createElement("div");
+        wrapper.className = "diagram-terminal";
+
+        // ── header ────────────────────────────────────────────────────────────
+        var header = document.createElement("div");
+        header.className = "diagram-terminal-header";
+        header.setAttribute("data-pagefind-ignore", "");
+
+        var label = document.createElement("span");
+        label.className = "diagram-terminal-label";
+        label.textContent = "Diagram // " + diagramType;
+        header.appendChild(label);
+
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "diagram-terminal-btn";
+        btn.setAttribute("aria-label", "Render diagram");
+        btn.textContent = "Render Diagram";
+        header.appendChild(btn);
+        wrapper.appendChild(header);
+
+        // ── loading indicator ─────────────────────────────────────────────────
+        var loadingEl = document.createElement("div");
+        loadingEl.className = "diagram-terminal-loading";
+        loadingEl.textContent = "Rendering\u2026";
+        wrapper.appendChild(loadingEl);
+
+        // ── output pane ───────────────────────────────────────────────────────
+        var output = document.createElement("div");
+        output.className = "diagram-terminal-output";
+        wrapper.appendChild(output);
+
+        // ── original <pre> stays in the DOM (code view) ───────────────────────
+        wrapper.appendChild(pre);
+
+        // ── toggle logic ──────────────────────────────────────────────────────
+        var rendered = false;
+
+        btn.addEventListener("click", function onClick() {
+          if (rendered) {
+            output.classList.remove("is-visible");
+            pre.style.display = "";
+            btn.textContent = "Render Diagram";
+            btn.setAttribute("aria-label", "Render diagram");
+            btn.classList.remove("is-rendered");
+            rendered = false;
+            return;
+          }
+
+          pre.style.display = "none";
+          loadingEl.classList.add("is-visible");
+          btn.disabled = true;
+          btn.textContent = "Rendering\u2026";
+
+          loadMermaid().then(function () {
+            var id = "diagram-" + (++diagramSeq);
+            return window.__mermaid.render(id, rawCode);
+          }).then(function (result) {
+            output.innerHTML = result.svg;
+            output.classList.add("is-visible");
+            loadingEl.classList.remove("is-visible");
+            btn.textContent = "Show Code";
+            btn.setAttribute("aria-label", "Show diagram source code");
+            btn.classList.add("is-rendered");
+            btn.disabled = false;
+            rendered = true;
+          }).catch(function (err) {
+            loadingEl.classList.remove("is-visible");
+            pre.style.display = "";
+            btn.textContent = "Render Diagram";
+            btn.setAttribute("aria-label", "Render diagram");
+            btn.disabled = false;
+            document.dispatchEvent(
+              new CustomEvent("toast:show", {
+                detail: "Diagram rendering failed \u2014 check the console",
+              })
+            );
+            console.error("[diagram-terminal] render error:", err);
+          });
+        });
+
+        return wrapper;
+      }
+
+      function initDiagramTerminals() {
+        document.querySelectorAll(".prose-note pre").forEach(function (pre) {
+          if (!isDiagram(pre)) return;
+          if (pre.parentElement && (pre.parentElement.classList.contains("diagram-terminal") || pre.parentElement.classList.contains("code-terminal"))) return;
+          var parent = pre.parentNode;
+          var nextSibling = pre.nextSibling;
+          var wrapper = buildDiagramTerminal(pre);
+          if (parent) {
+            parent.insertBefore(wrapper, nextSibling);
+          }
+        });
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initDiagramTerminals);
+      } else {
+        initDiagramTerminals();
+      }
+    })();
+  </script>
+  )}
 </Layout>
