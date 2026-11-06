@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { rehypePostSources } from './src/lib/rehype-post-sources.mjs';
 import { rehypeImageMetadata } from './src/lib/rehype-image-metadata.mjs';
+import { rehypeDiagramBlocks } from './src/lib/rehype-diagram-blocks.mjs';
 
 /**
  * Reads a value from `.env` so the sitemap origin matches the origin used by
@@ -106,7 +107,7 @@ export default defineConfig({
     // Astro 7 defaults to the SAtteri pipeline; opt back into the
     // remark/rehype pipeline so the custom rehype plugins below still run.
     processor: unified({
-      rehypePlugins: [rehypePostSources, rehypeImageMetadata],
+      rehypePlugins: [rehypePostSources, rehypeImageMetadata, rehypeDiagramBlocks],
     }),
     shikiConfig: {
       theme: 'tokyo-night',

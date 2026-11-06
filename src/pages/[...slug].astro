@@ -24,6 +24,14 @@ export async function getStaticPaths() {
 const { post } = Astro.props;
 const { Content, headings } = await render(post);
 
+// Detect whether the post body contains any diagram fences so we can
+// conditionally inject the Mermaid initialisation script.
+const bodySource = post.body ?? "";
+const HAS_DIAGRAMS =
+  /^```(mermaid|c4)\b/m.test(bodySource) ||
+  /^```(text|txt|plain|plaintext)?\r?\n[\s\S]*?^C4(Context|Container|Component|Dynamic|Deployment)\b/m.test(bodySource) ||
+  /^```\r?\n[\s\S]*?^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram)\b/m.test(bodySource);
+
 const noteId = await getNoteNumber(post);
 const readingTime = estimateReadingTime(post.body ?? "");
 const wordCount = (post.body ?? "")
@@ -110,7 +118,7 @@ const tocItems: TocItem[] = headings
           </div>
         </header>
 
-        <div class="prose-note drop-cap">
+        <div class="prose-note drop-cap" data-has-diagrams={HAS_DIAGRAMS ? "true" : undefined}>
           <Content />
         </div>
 
@@ -131,10 +139,28 @@ const tocItems: TocItem[] = headings
 
   <script>
     const PLAIN_LANGS = new Set(["plaintext", "plain", "text", "txt", "ansi"]);
+    const DIAGRAM_KEYWORDS = /^(C4(Context|Container|Component|Dynamic|Deployment)|graph|flowchart|sequenceDiagram|classDiagram|stateDiagram(-v2)?|erDiagram|journey|gantt|pie|gitGraph|mindmap|timeline|quadrantChart|sankey-beta|xychart-beta|packet-beta|kanban|architecture-beta)\b/m;
 
     function isPlainBlock(pre: HTMLPreElement) {
       const lang = (pre.dataset.language || "").toLowerCase();
       return !lang || PLAIN_LANGS.has(lang);
+    }
+
+    function isDiagramBlock(pre: HTMLPreElement) {
+      if (pre.dataset.diagram) return true;
+      const lang = (pre.dataset.language || "").toLowerCase();
+      if (lang === "mermaid" || lang === "c4") return true;
+      const text = (pre.textContent || "").trim();
+      return DIAGRAM_KEYWORDS.test(text);
+    }
+
+    function getDisplayLanguage(pre: HTMLPreElement): string {
+      if (pre.dataset.diagram === "c4" || pre.dataset.language === "c4") return "c4";
+      const raw = (pre.dataset.diagramCode || pre.textContent || "").trim();
+      if (/^C4(Context|Container|Component|Dynamic|Deployment)\b/m.test(raw)) return "c4";
+      if (pre.dataset.diagram === "mermaid" || pre.dataset.language === "mermaid") return "mermaid";
+      if (DIAGRAM_KEYWORDS.test(raw)) return "mermaid";
+      return (pre.dataset.language || "text").toLowerCase();
     }
 
     function legacyCopy(text: string) {
@@ -175,19 +201,44 @@ const tocItems: TocItem[] = headings
       label.textContent = "Terminal // " + lang;
       header.appendChild(label);
 
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "code-terminal-copy";
-      button.setAttribute("aria-label", "Copy code to clipboard");
-      button.textContent = "Copy";
-      button.addEventListener("click", function onClick() {
+      const actions = document.createElement("div");
+      actions.className = "code-terminal-actions";
+
+      // If this block contains a diagram, place "Show Diagram" alongside "Copy"
+      if (isDiagramBlock(pre)) {
+        const diagramBtn = document.createElement("button");
+        diagramBtn.type = "button";
+        diagramBtn.className = "code-terminal-btn code-terminal-diagram";
+        diagramBtn.setAttribute("aria-label", "Show rendered diagram in modal");
+        diagramBtn.textContent = "Show Diagram";
+        diagramBtn.addEventListener("click", function onClick() {
+          document.dispatchEvent(
+            new CustomEvent("diagram:open", {
+              detail: {
+                pre: pre,
+                lang: lang,
+                triggerBtn: diagramBtn,
+              },
+            }),
+          );
+        });
+        actions.appendChild(diagramBtn);
+      }
+
+      // Copy to clipboard button
+      const copyBtn = document.createElement("button");
+      copyBtn.type = "button";
+      copyBtn.className = "code-terminal-btn code-terminal-copy";
+      copyBtn.setAttribute("aria-label", "Copy code to clipboard");
+      copyBtn.textContent = "Copy";
+      copyBtn.addEventListener("click", function onClick() {
         copyToClipboard(pre).then(function onCopied(copied) {
           if (!copied) return;
-          button.textContent = "Copied";
-          button.classList.add("is-copied");
+          copyBtn.textContent = "Copied";
+          copyBtn.classList.add("is-copied");
           window.setTimeout(function reset() {
-            button.textContent = "Copy";
-            button.classList.remove("is-copied");
+            copyBtn.textContent = "Copy";
+            copyBtn.classList.remove("is-copied");
           }, 2000);
           document.dispatchEvent(
             new CustomEvent("toast:show", {
@@ -196,16 +247,19 @@ const tocItems: TocItem[] = headings
           );
         });
       });
-      header.appendChild(button);
+      actions.appendChild(copyBtn);
 
+      header.appendChild(actions);
       return header;
     }
 
     function enhance(pre: HTMLPreElement) {
-      if (isPlainBlock(pre)) return;
       if (pre.parentElement && pre.parentElement.classList.contains("code-terminal")) return;
+      const isDiag = isDiagramBlock(pre);
+      // Fences marked as text/plain are skipped unless they contain a diagram
+      if (isPlainBlock(pre) && !isDiag) return;
 
-      const lang = (pre.dataset.language || "").toLowerCase();
+      const lang = getDisplayLanguage(pre);
       const wrapper = document.createElement("div");
       wrapper.className = "code-terminal";
       if (pre.parentNode) pre.parentNode.insertBefore(wrapper, pre);
@@ -225,4 +279,420 @@ const tocItems: TocItem[] = headings
       initCodeTerminals();
     }
   </script>
+
+  {HAS_DIAGRAMS && (
+  <script is:inline>
+    // ─── Mermaid diagram rendering & Fullscreen Modal Viewer ──────────────────
+    // Mermaid.js (+ C4 diagrams extension) is loaded lazily on the first
+    // "Show Diagram" click. The opened modal supports:
+    //  - Smooth pan & drag (touch/pointer)
+    //  - Mousewheel zoom (centered at cursor)
+    //  - Touch pinch-to-zoom
+    //  - Zoom in (+), Zoom out (-), Reset (1:1), Fit to screen
+    //  - Esc key or backdrop click to close
+
+    (function () {
+      var mermaidReady = null;
+
+      function loadMermaid() {
+        if (mermaidReady) return mermaidReady;
+        mermaidReady = new Promise(function (resolve, reject) {
+          var script = document.createElement("script");
+          script.type = "module";
+          script.textContent = [
+            "import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';",
+            "mermaid.initialize({",
+            "  startOnLoad: false,",
+            "  theme: 'dark',",
+            "  themeVariables: {",
+            "    background: '#0B132B',",
+            "    primaryColor: '#1C2541',",
+            "    primaryTextColor: '#E2E8F0',",
+            "    primaryBorderColor: '#334155',",
+            "    lineColor: '#94A3B8',",
+            "    secondaryColor: '#1E293B',",
+            "    tertiaryColor: '#0EA5E9',",
+            "    edgeLabelBackground: '#1C2541',",
+            "    clusterBkg: '#1C2541',",
+            "    titleColor: '#F59E0B',",
+            "    attributeBackgroundColorEven: '#1C2541',",
+            "    attributeBackgroundColorOdd: '#0B132B',",
+            "  },",
+            "  fontFamily: '\"Fira Code\", \"Space Grotesk\", monospace',",
+            "  c4: { diagramMarginY: 30 },",
+            "});",
+            "window.__mermaid = mermaid;",
+            "document.dispatchEvent(new Event('mermaid:ready'));",
+          ].join("\n");
+          document.head.appendChild(script);
+
+          document.addEventListener("mermaid:ready", function () { resolve(); }, { once: true });
+          window.setTimeout(function () {
+            reject(new Error("Mermaid load timeout"));
+          }, 15000);
+        });
+        return mermaidReady;
+      }
+
+      var diagramSeq = 0;
+      var modalEl = null;
+      var titleEl = null;
+      var scaleBadge = null;
+      var viewportEl = null;
+      var contentEl = null;
+      var loadingEl = null;
+      var activeSvg = null;
+
+      // Transform state
+      var scale = 1;
+      var translateX = 0;
+      var translateY = 0;
+
+      function updateTransform() {
+        if (!contentEl) return;
+        contentEl.style.transform =
+          "translate(calc(-50% + " + translateX + "px), calc(-50% + " + translateY + "px)) scale(" + scale + ")";
+        if (scaleBadge) {
+          scaleBadge.textContent = Math.round(scale * 100) + "%";
+        }
+      }
+
+      function zoomBy(factor) {
+        scale = Math.min(Math.max(Number((scale * factor).toFixed(2)), 0.15), 6.0);
+        updateTransform();
+      }
+
+      function getSvgIntrinsicDimensions(svg) {
+        if (!svg) return { width: 800, height: 600 };
+
+        // 1. Check viewBox attribute
+        var vbAttr = svg.getAttribute("viewBox");
+        if (vbAttr) {
+          var parts = vbAttr.trim().split(/[\s,]+/).map(Number);
+          if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+            return { width: parts[2], height: parts[3] };
+          }
+        }
+
+        // 2. Check viewBox DOM property
+        if (svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width > 0) {
+          return {
+            width: svg.viewBox.baseVal.width,
+            height: svg.viewBox.baseVal.height,
+          };
+        }
+
+        // 3. Check getBBox
+        try {
+          var bbox = svg.getBBox();
+          if (bbox && bbox.width > 0 && bbox.height > 0) {
+            return { width: bbox.width, height: bbox.height };
+          }
+        } catch (_) {}
+
+        // 4. Fallback to width/height attributes or getBoundingClientRect
+        var w = parseFloat(svg.getAttribute("width")) || svg.clientWidth || 800;
+        var h = parseFloat(svg.getAttribute("height")) || svg.clientHeight || 600;
+        return { width: w, height: h };
+      }
+
+      function fitDiagram() {
+        if (!activeSvg || !viewportEl) return;
+        var vpRect = viewportEl.getBoundingClientRect();
+        var dims = getSvgIntrinsicDimensions(activeSvg);
+        var svgW = dims.width;
+        var svgH = dims.height;
+
+        // Apply intrinsic dimensions to SVG element so it scales smoothly
+        activeSvg.style.width = svgW + "px";
+        activeSvg.style.height = svgH + "px";
+        activeSvg.style.maxWidth = "none";
+        activeSvg.style.maxHeight = "none";
+
+        // Margins around the diagram inside the viewport
+        var padX = 48;
+        var padY = 48;
+        var availW = Math.max(vpRect.width - padX, 100);
+        var availH = Math.max(vpRect.height - padY, 100);
+
+        // Calculate scale to consume maximum viewport space (either full width or full height)
+        var fitScale = Math.min(availW / svgW, availH / svgH);
+        scale = Math.min(Math.max(Number(fitScale.toFixed(2)), 0.1), 10.0);
+        translateX = 0;
+        translateY = 0;
+        updateTransform();
+      }
+
+      function resetDiagram() {
+        scale = 1;
+        translateX = 0;
+        translateY = 0;
+        updateTransform();
+      }
+
+      function createModal() {
+        if (modalEl) return;
+
+        modalEl = document.createElement("div");
+        modalEl.className = "diagram-modal";
+        modalEl.setAttribute("role", "dialog");
+        modalEl.setAttribute("aria-modal", "true");
+        modalEl.setAttribute("aria-label", "Diagram Viewer");
+
+        var dialog = document.createElement("div");
+        dialog.className = "diagram-modal-dialog";
+
+        // Header
+        var header = document.createElement("div");
+        header.className = "diagram-modal-header";
+
+        titleEl = document.createElement("div");
+        titleEl.className = "diagram-modal-title";
+        titleEl.textContent = "Diagram Viewer";
+        header.appendChild(titleEl);
+
+        var controls = document.createElement("div");
+        controls.className = "diagram-modal-controls";
+
+        var btnZoomOut = document.createElement("button");
+        btnZoomOut.type = "button";
+        btnZoomOut.className = "diagram-icon-btn";
+        btnZoomOut.title = "Zoom out (−)";
+        btnZoomOut.textContent = "−";
+        btnZoomOut.addEventListener("click", function () { zoomBy(0.8); });
+        controls.appendChild(btnZoomOut);
+
+        scaleBadge = document.createElement("span");
+        scaleBadge.className = "diagram-modal-scale-badge";
+        scaleBadge.textContent = "100%";
+        scaleBadge.title = "Click to reset to 100%";
+        scaleBadge.style.cursor = "pointer";
+        scaleBadge.addEventListener("click", resetDiagram);
+        controls.appendChild(scaleBadge);
+
+        var btnZoomIn = document.createElement("button");
+        btnZoomIn.type = "button";
+        btnZoomIn.className = "diagram-icon-btn";
+        btnZoomIn.title = "Zoom in (+)";
+        btnZoomIn.textContent = "+";
+        btnZoomIn.addEventListener("click", function () { zoomBy(1.25); });
+        controls.appendChild(btnZoomIn);
+
+        var btnFit = document.createElement("button");
+        btnFit.type = "button";
+        btnFit.className = "diagram-icon-btn";
+        btnFit.title = "Fit diagram to screen";
+        btnFit.textContent = "Fit";
+        btnFit.addEventListener("click", fitDiagram);
+        controls.appendChild(btnFit);
+
+        var btnClose = document.createElement("button");
+        btnClose.type = "button";
+        btnClose.className = "diagram-icon-btn";
+        btnClose.title = "Close (Esc)";
+        btnClose.textContent = "✕";
+        btnClose.addEventListener("click", closeModal);
+        controls.appendChild(btnClose);
+
+        header.appendChild(controls);
+        dialog.appendChild(header);
+
+        // Viewport
+        viewportEl = document.createElement("div");
+        viewportEl.className = "diagram-modal-viewport";
+
+        contentEl = document.createElement("div");
+        contentEl.className = "diagram-modal-content";
+        viewportEl.appendChild(contentEl);
+
+        loadingEl = document.createElement("div");
+        loadingEl.className = "diagram-modal-loading";
+        loadingEl.textContent = "Rendering diagram…";
+        viewportEl.appendChild(loadingEl);
+
+        var hints = document.createElement("div");
+        hints.className = "diagram-modal-hints";
+        hints.textContent = "Drag to pan • Scroll to zoom • Esc to close";
+        viewportEl.appendChild(hints);
+
+        dialog.appendChild(viewportEl);
+        modalEl.appendChild(dialog);
+        document.body.appendChild(modalEl);
+
+        // Backdrop click to close
+        modalEl.addEventListener("click", function (e) {
+          if (e.target === modalEl) closeModal();
+        });
+
+        // Keyboard navigation
+        window.addEventListener("keydown", function (e) {
+          if (!modalEl || !modalEl.classList.contains("is-open")) return;
+          if (e.key === "Escape") {
+            closeModal();
+          } else if (e.key === "+" || e.key === "=") {
+            zoomBy(1.2);
+          } else if (e.key === "-" || e.key === "_") {
+            zoomBy(0.8);
+          } else if (e.key === "0") {
+            resetDiagram();
+          }
+        });
+
+        // ── Pan & Drag Engine ──
+        var isPanning = false;
+        var startX = 0;
+        var startY = 0;
+        var initX = 0;
+        var initY = 0;
+        var activePointers = new Map();
+        var initialDistance = 0;
+        var initialScale = 1;
+
+        viewportEl.addEventListener("pointerdown", function (e) {
+          activePointers.set(e.pointerId, e);
+          if (activePointers.size === 1) {
+            if (e.button !== 0 && e.pointerType === "mouse") return;
+            isPanning = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            initX = translateX;
+            initY = translateY;
+            viewportEl.classList.add("is-panning");
+            try { viewportEl.setPointerCapture(e.pointerId); } catch (_) {}
+          } else if (activePointers.size === 2) {
+            isPanning = false;
+            viewportEl.classList.remove("is-panning");
+            var pts = Array.from(activePointers.values());
+            initialDistance = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
+            initialScale = scale;
+          }
+        });
+
+        viewportEl.addEventListener("pointermove", function (e) {
+          activePointers.set(e.pointerId, e);
+          if (activePointers.size === 2 && initialDistance > 0) {
+            var pts = Array.from(activePointers.values());
+            var currentDist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
+            var factor = currentDist / initialDistance;
+            scale = Math.min(Math.max(Number((initialScale * factor).toFixed(2)), 0.15), 6.0);
+            updateTransform();
+            return;
+          }
+
+          if (!isPanning) return;
+          translateX = initX + (e.clientX - startX);
+          translateY = initY + (e.clientY - startY);
+          updateTransform();
+        });
+
+        function handlePointerEnd(e) {
+          activePointers.delete(e.pointerId);
+          if (activePointers.size === 0) {
+            isPanning = false;
+            viewportEl.classList.remove("is-panning");
+            try { viewportEl.releasePointerCapture(e.pointerId); } catch (_) {}
+          } else if (activePointers.size === 1) {
+            var remaining = Array.from(activePointers.values())[0];
+            startX = remaining.clientX;
+            startY = remaining.clientY;
+            initX = translateX;
+            initY = translateY;
+            isPanning = true;
+          }
+        }
+
+        viewportEl.addEventListener("pointerup", handlePointerEnd);
+        viewportEl.addEventListener("pointercancel", handlePointerEnd);
+
+        // ── Mousewheel Zoom ──
+        viewportEl.addEventListener("wheel", function (e) {
+          e.preventDefault();
+          var factor = e.deltaY < 0 ? 1.15 : 0.87;
+          scale = Math.min(Math.max(Number((scale * factor).toFixed(2)), 0.15), 6.0);
+          updateTransform();
+        }, { passive: false });
+      }
+
+      var lastActiveTrigger = null;
+
+      function openModal(triggerBtn) {
+        lastActiveTrigger = triggerBtn || null;
+        createModal();
+        modalEl.classList.add("is-open");
+        document.body.style.overflow = "hidden";
+      }
+
+      function closeModal() {
+        if (!modalEl) return;
+        modalEl.classList.remove("is-open");
+        document.body.style.overflow = "";
+        if (lastActiveTrigger && typeof lastActiveTrigger.focus === "function") {
+          try { lastActiveTrigger.focus(); } catch (_) {}
+        }
+      }
+
+      // Re-fit diagram if viewport resizes while modal is active
+      window.addEventListener("resize", function () {
+        if (modalEl && modalEl.classList.contains("is-open")) {
+          fitDiagram();
+        }
+      });
+
+      // Listen to diagram:open dispatched by "Show Diagram" button
+      document.addEventListener("diagram:open", function (e) {
+        var detail = (e && e.detail) || {};
+        var pre = detail.pre;
+        var lang = detail.lang || "mermaid";
+        var triggerBtn = detail.triggerBtn;
+
+        if (!pre) return;
+        var rawCode = (pre.dataset.diagramCode || pre.textContent || "").trim();
+
+        if (triggerBtn) {
+          triggerBtn.textContent = "Loading…";
+          triggerBtn.disabled = true;
+        }
+
+        openModal(triggerBtn);
+        contentEl.innerHTML = "";
+        loadingEl.style.display = "flex";
+
+        // Extract title if present in diagram text
+        var titleMatch = rawCode.match(/^title\s+(.+)$/m);
+        var label = titleMatch
+          ? "DIAGRAM // " + titleMatch[1].trim()
+          : "DIAGRAM VIEWER // " + lang.toUpperCase();
+        if (titleEl) titleEl.textContent = label;
+
+        loadMermaid().then(function () {
+          var id = "diagram-modal-" + (++diagramSeq);
+          return window.__mermaid.render(id, rawCode);
+        }).then(function (result) {
+          loadingEl.style.display = "none";
+          contentEl.innerHTML = result.svg;
+          activeSvg = contentEl.querySelector("svg");
+          fitDiagram();
+
+          if (triggerBtn) {
+            triggerBtn.textContent = "Show Diagram";
+            triggerBtn.disabled = false;
+          }
+        }).catch(function (err) {
+          loadingEl.style.display = "none";
+          closeModal();
+          if (triggerBtn) {
+            triggerBtn.textContent = "Show Diagram";
+            triggerBtn.disabled = false;
+          }
+          document.dispatchEvent(
+            new CustomEvent("toast:show", {
+              detail: "Diagram rendering failed — check the console",
+            })
+          );
+          console.error("[diagram-modal] render error:", err);
+        });
+      });
+    })();
+  </script>
+  )}
 </Layout>
