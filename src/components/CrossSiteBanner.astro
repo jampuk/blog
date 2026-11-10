@@ -1,0 +1,241 @@
+---
+// Floating "Back to ..." banner (bottom-left of the viewport).
+// When a visitor arrives from a sibling Jampuk site (www.jampuk.com or
+// docs.jampuk.com), this offers a one-click return to the exact page they
+// came from. Two halves, both handled here:
+//   1. Exit: sibling links clicked anywhere on this site are stamped with
+//      `?via=field-notes&via_path=...` so the destination knows the source.
+//   2. Arrival: read those params (or fall back to document.referrer, which
+//      cross-origin only exposes the origin of), show the banner, then strip
+//      the params so canonical URLs stay clean. The source is kept in
+//      sessionStorage so the banner persists across this session until it is
+//      dismissed or used.
+//
+// Same contract on the other two sites (website, docs); only SELF differs.
+---
+
+<div
+  id="cross-site-banner"
+  role="region"
+  aria-label="Return to the previous Jampuk site"
+  data-pagefind-ignore
+  class="fixed bottom-4 left-4 z-[80] w-max max-w-[calc(100vw-2rem)] pointer-events-none opacity-0 invisible translate-y-2 transition-all duration-300 ease-out"
+>
+  <div class="flex items-center gap-1 pl-2 pr-1 py-1.5 rounded-lg bg-surface-container border border-outline shadow-level-2">
+    <a
+      id="cross-site-banner-link"
+      href="#"
+      class="flex items-center gap-2 px-2 py-1 rounded-md text-sm font-medium text-on-surface hover:text-accent-amber transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-amber"
+    >
+      <svg class="w-4 h-4 text-accent-amber flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+      </svg>
+      <span>Back to&nbsp;<span id="cross-site-banner-label"></span></span>
+    </a>
+    <button
+      type="button"
+      id="cross-site-banner-close"
+      aria-label="Dismiss"
+      class="flex-shrink-0 p-1.5 rounded-md text-on-surface-variant hover:text-on-surface hover:bg-white/10 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-amber"
+    >
+      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+  </div>
+</div>
+
+<script>
+  (() => {
+    const SITES: Record<string, { host: string; label: string; home: string }> = {
+      "field-notes": { host: "read.jampuk.com", label: "read Field Notes", home: "/" },
+      docs: { host: "docs.jampuk.com", label: "Jampuk Docs", home: "/" },
+      website: { host: "www.jampuk.com", label: "Jampuk.com", home: "/" },
+    };
+    // This site's key in SITES.
+    const SELF = "field-notes";
+    const STORAGE_KEY = "jampuk-cross-site-banner";
+
+    const keyForHost = (hostname: string): string | null => {
+      const host = hostname.toLowerCase();
+      for (const [key, site] of Object.entries(SITES)) {
+        if (site.host === host) return key;
+      }
+      return null;
+    };
+
+    // --- 1. Exit tagging: stamp links to sibling sites with this site's
+    // identity so the destination can offer an exact "Back to ..." link.
+    document.addEventListener(
+      "click",
+      (event) => {
+        if (
+          event.defaultPrevented ||
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey
+        )
+          return;
+        if (!(event.target instanceof Element)) return;
+        const anchor = event.target.closest("a[href]");
+        if (!anchor) return;
+        const raw = anchor.getAttribute("href") || "";
+        if (
+          !raw ||
+          raw.startsWith("#") ||
+          raw.startsWith("mailto:") ||
+          raw.startsWith("tel:") ||
+          raw.startsWith("javascript:")
+        )
+          return;
+        let url: URL;
+        try {
+          url = new URL(raw, location.href);
+        } catch {
+          return;
+        }
+        if (url.protocol !== "http:" && url.protocol !== "https:") return;
+        if (url.origin === location.origin) return;
+        const target = keyForHost(url.hostname);
+        if (!target || target === SELF) return;
+        url.searchParams.set("via", SELF);
+        url.searchParams.set("via_path", location.pathname);
+        anchor.setAttribute("href", url.href);
+      },
+      true,
+    );
+
+    // Paths must stay on the source site's origin: blocks protocol-relative
+    // (`//evil.com`) and lookalike values from turning the back link into an
+    // open redirect.
+    const safePath = (path: string, host: string): boolean => {
+      if (path.length > 512) return false;
+      try {
+        return new URL(path, `https://${host}`).origin === `https://${host}`;
+      } catch {
+        return false;
+      }
+    };
+
+    // Analytics rides the existing gtag shim (Partytown-forwarded when the
+    // measurement ID is configured; silently absent otherwise).
+    const track = (event: string, from: string) => {
+      try {
+        const gtag = (window as unknown as { gtag?: (...args: unknown[]) => void }).gtag;
+        if (typeof gtag === "function") gtag("event", event, { from_site: from });
+      } catch {
+        /* analytics unavailable */
+      }
+    };
+
+    // --- 2. Arrival: resolve where this visitor came from. ---
+    const params = new URLSearchParams(location.search);
+    const via = params.get("via");
+    let source: { key: string; path: string } | null = null;
+
+    if (via && via !== SELF && SITES[via]) {
+      const path = params.get("via_path") || SITES[via].home;
+      if (safePath(path, SITES[via].host)) source = { key: via, path };
+    }
+    if (!source) {
+      // Referrer fallback (middle-click, new tab, param stripped en route):
+      // cross-origin referrers expose the origin only, so link to the
+      // sibling's home rather than the exact page.
+      try {
+        if (document.referrer) {
+          const key = keyForHost(new URL(document.referrer).hostname);
+          if (key && key !== SELF) source = { key, path: SITES[key].home };
+        }
+      } catch {
+        /* malformed referrer */
+      }
+    }
+
+    if (source) {
+      try {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(source));
+      } catch {
+        /* storage unavailable */
+      }
+      if (via) {
+        // One-shot handoff: strip the params so they never leak into
+        // canonical links, shares or bookmarks.
+        params.delete("via");
+        params.delete("via_path");
+        const query = params.toString();
+        history.replaceState(
+          null,
+          "",
+          location.pathname + (query ? `?${query}` : "") + location.hash,
+        );
+      }
+    } else {
+      // No fresh handoff: resume an earlier arrival from this session.
+      try {
+        const stored = sessionStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored) as { key?: unknown; path?: unknown };
+          if (
+            typeof parsed?.key === "string" &&
+            parsed.key !== SELF &&
+            SITES[parsed.key]
+          ) {
+            const path =
+              typeof parsed.path === "string" ? parsed.path : SITES[parsed.key].home;
+            if (safePath(path, SITES[parsed.key].host)) {
+              source = { key: parsed.key, path };
+            }
+          }
+        }
+      } catch {
+        /* storage unavailable or malformed */
+      }
+    }
+    if (!source) return;
+
+    // --- 3. UI ---
+    const banner = document.getElementById("cross-site-banner");
+    const link = document.getElementById("cross-site-banner-link");
+    const label = document.getElementById("cross-site-banner-label");
+    const close = document.getElementById("cross-site-banner-close");
+    if (!banner || !link || !label || !close) return;
+
+    const from = source;
+    const site = SITES[from.key];
+    try {
+      link.setAttribute("href", new URL(from.path, `https://${site.host}`).href);
+    } catch {
+      return;
+    }
+    label.textContent = site.label;
+
+    // Keep clear of the full-width consent bar while it is still undecided.
+    const consent = document.getElementById("consent-banner");
+    if (consent && consent.offsetHeight > 0) {
+      banner.style.setProperty("bottom", `calc(${consent.offsetHeight}px + 1.25rem)`);
+    }
+
+    const hide = (event: string) => {
+      try {
+        sessionStorage.removeItem(STORAGE_KEY);
+      } catch {
+        /* storage unavailable */
+      }
+      banner.classList.add("opacity-0", "translate-y-2", "invisible", "pointer-events-none");
+      track(event, from.key);
+    };
+    // Navigation proceeds; the storage wipe just ends this session's banner.
+    close.addEventListener("click", () => hide("cross_site_banner_dismiss"));
+    link.addEventListener("click", () => hide("cross_site_banner_click"));
+
+    // Double rAF: let the hidden styles paint first so the reveal transitions.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        banner.classList.remove("opacity-0", "translate-y-2", "invisible", "pointer-events-none");
+        track("cross_site_banner_show", from.key);
+      });
+    });
+  })();
+</script>

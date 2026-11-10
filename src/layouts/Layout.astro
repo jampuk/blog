@@ -3,6 +3,7 @@ import "../styles/global.css";
 import Logo from "@components/Logo.astro";
 import Footer from "@components/Footer.astro";
 import ConsentBanner from "@components/ConsentBanner.astro";
+import CrossSiteBanner from "@components/CrossSiteBanner.astro";
 import SubscribeModal from "@components/SubscribeModal.astro";
 import SearchModal from "@components/SearchModal.astro";
 import ScrollToTop from "@components/ScrollToTop.astro";
@@ -342,6 +343,7 @@ const canonicalURL =
     <SearchModal />
     <ScrollToTop />
     <Toast />
+    <CrossSiteBanner />
 
     <script>
       // Header scroll progress: drives the tint fade + hairline via --header-scroll-progress (0..1)
